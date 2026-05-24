@@ -1,0 +1,114 @@
+﻿@model Construction360.ViewModels.RegisterViewModel
+@{
+    ViewData["Title"] = "Create Account";
+    Layout = "_Layout";
+}
+
+<div class="auth-page" style="padding-top:60px;">
+    <div class="auth-card" style="max-width:500px;">
+        <h2 class="auth-title">Create your account</h2>
+        <p class="auth-subtitle">Get started with Construct360 today</p>
+
+        @if (!string.IsNullOrEmpty(Model.Error))
+        {
+            <div class="error-alert">@Model.Error</div>
+        }
+
+        <form method="post">
+            <div class="form-group">
+                <label class="form-label">Full Name</label>
+                <div class="input-wrap">
+                    <span class="input-icon"><i class="fa-regular fa-user"></i></span>
+                    <input name="FullName" type="text" class="form-control" placeholder="Kopano Leshope" value="@Model.FullName" required />
+                </div>
+            </div>
+            <div class="form-group">
+                <label class="form-label">Username</label>
+                <div class="input-wrap">
+                    <span class="input-icon">@@</span>
+                    <input name="Username" type="text" class="form-control" placeholder="role@rocla.com" value="@Model.Username" required />
+                </div>
+            </div>
+            <div class="form-group">
+                <label class="form-label">Email Address</label>
+                <div class="input-wrap">
+                    <span class="input-icon"><i class="fa-regular fa-envelope"></i></span>
+                    <input name="Email" type="email" class="form-control" placeholder="kopano@example.com" value="@Model.Email" required />
+                </div>
+            </div>
+            <div class="form-group">
+                <label class="form-label">Password</label>
+                <div class="input-wrap">
+                    <span class="input-icon"><i class="fa-solid fa-lock"></i></span>
+                    <input name="Password" id="pwd1" type="password" class="form-control" placeholder="myP@55" required />
+                    <button type="button" class="eye-toggle" onclick="togglePwd('pwd1',this)"><i class="fa-regular fa-eye"></i></button>
+                </div>
+            </div>
+            <div class="form-group">
+                <label class="form-label">Confirm Password</label>
+                <div class="input-wrap">
+                    <span class="input-icon"><i class="fa-solid fa-lock"></i></span>
+                    <input name="ConfirmPassword" id="pwd2" type="password" class="form-control" placeholder="Confirm your password" required />
+                    <button type="button" class="eye-toggle" onclick="togglePwd('pwd2',this)"><i class="fa-regular fa-eye"></i></button>
+                </div>
+            </div>
+
+            <div class="form-group">
+                <label class="form-label">Select Your Role</label>
+                <input type="hidden" name="Role" id="roleInput" value="Employee" />
+                <div class="role-option" data-role="Employee" onclick="selectRole(this, 'Employee')">
+                    <div class="role-option-left">
+                        <div class="role-icon-wrap"><i class="fa-solid fa-user"></i></div>
+                        <div>
+                            <div class="role-name">Employee</div>
+                            <div class="role-desc">Access personal attendance, leave requests, and QR code</div>
+                        </div>
+                    </div>
+                    <div class="radio-dot filled" id="dot-Employee"></div>
+                </div>
+                <div class="role-option" data-role="Supervisor" onclick="selectRole(this, 'Supervisor')">
+                    <div class="role-option-left">
+                        <div class="role-icon-wrap" style="background:#059669;"><i class="fa-solid fa-user-tie"></i></div>
+                        <div>
+                            <div class="role-name">Supervisor</div>
+                            <div class="role-desc">Manage team attendance, approve leaves, and scan QR codes</div>
+                        </div>
+                    </div>
+                    <div class="radio-dot" id="dot-Supervisor"></div>
+                </div>
+                <div class="role-option" data-role="Admin" onclick="selectRole(this, 'Admin')">
+                    <div class="role-option-left">
+                        <div class="role-icon-wrap" style="background:#7c3aed;"><i class="fa-solid fa-shield-halved"></i></div>
+                        <div>
+                            <div class="role-name">Admin</div>
+                            <div class="role-desc">Full access to all system features and settings</div>
+                        </div>
+                    </div>
+                    <div class="radio-dot" id="dot-Admin"></div>
+                </div>
+            </div>
+
+            <button type="submit" class="btn btn-primary btn-full" style="margin-top:8px;">Create Account</button>
+        </form>
+        <div class="auth-footer">Already have an account? <a href="/Account/Login" class="link">Sign in</a></div>
+    </div>
+</div>
+<script>
+function togglePwd(id, btn) {
+    const i = document.getElementById(id);
+    i.type = i.type === 'password' ? 'text' : 'password';
+    btn.textContent = i.type === 'password' ? '👁' : '🙈';
+}
+function selectRole(el, role) {
+    document.querySelectorAll('.role-option').forEach(o => {
+        o.classList.remove('selected');
+    });
+    ['Employee','Supervisor','Admin'].forEach(r => {
+        const d = document.getElementById('dot-'+r);
+        if (d) { d.classList.remove('filled'); }
+    });
+    el.classList.add('selected');
+    document.getElementById('dot-'+role)?.classList.add('filled');
+    document.getElementById('roleInput').value = role;
+}
+</script>

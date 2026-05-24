@@ -1,0 +1,117 @@
+﻿@using Construction360.Models
+@model List<Employee>
+@{
+    ViewData["Title"] = "Employees";
+    ViewData["PageTitle"] = "Employee Management";
+    Layout = "_AppLayout";
+}
+
+<div class="page-header flex justify-between items-center">
+    <div>
+        <h1>Employees</h1>
+        <p>Manage employee records and profiles</p>
+    </div>
+    <button class="btn btn-primary" onclick="openModal('addEmployeeModal')">
+        <i class="fa-solid fa-user-plus"></i>
+        Add Employee
+    </button>
+</div>
+
+<div class="table-card">
+    <div class="table-toolbar">
+        <form method="get" style="display:contents;">
+            <div class="search-input">
+                <span><i class="fa-solid fa-magnifying-glass"></i></span>
+                <input type="text" name="search" placeholder="Search by name, ID, or email..." value="@ViewBag.Search" />
+            </div>
+            <select name="department" class="filter-select" onchange="this.form.submit()">
+                <option value="All">All Departments</option>
+                @foreach (var dept in new[] { "Manufacturing", "Quality Control", "Logistics", "Maintenance", "Administration" })
+                {
+                    <option value="@dept" selected="@(ViewBag.Department == dept ? "selected" : null)">@dept</option>
+                }
+            </select>
+            <select name="status" class="filter-select" onchange="this.form.submit()">
+                <option value="All">All Status</option>
+                <option value="Active">Active</option>
+                <option value="On leave">On leave</option>
+            </select>
+            <button type="submit" class="btn btn-outline btn-sm">Search</button>
+        </form>
+    </div>
+    <table>
+        <thead>
+            <tr>
+                <th>EMPLOYEE</th>
+                <th>DEPARTMENT</th>
+                <th>POSITION</th>
+                <th>STATUS</th>
+                <th>ACTIONS</th>
+            </tr>
+        </thead>
+        <tbody>
+            @foreach (var emp in Model)
+            {
+                <tr>
+                    <td>
+                        <div class="emp-row">
+                            <div class="emp-avatar">@emp.Initials</div>
+                            <div>
+                                <div class="emp-name">@emp.FullName</div>
+                                <div class="emp-id">@emp.EmployeeId</div>
+                            </div>
+                        </div>
+                    </td>
+                    <td>@emp.Department</td>
+                    <td>@emp.Position</td>
+                    <td>
+                        @if (emp.Status == "Active")
+                        {
+                            <span class="badge badge-success">Active</span>
+                        }
+                        else if (emp.Status == "On leave")
+                        {
+                            <span class="badge badge-warning">On leave</span>
+                        }
+                        else
+                        {
+                            <span class="badge badge-muted">@emp.Status</span>
+                        }
+                    </td>
+                    <td>
+                        <button class="btn btn-outline btn-sm">⋮</button>
+                    </td>
+                </tr>
+            }
+        </tbody>
+    </table>
+</div>
+
+<!-- Add Employee Modal -->
+<div class="modal-overlay" id="addEmployeeModal">
+    <div class="modal-box">
+        <h3 class="modal-title">Add New Employee</h3>
+        <p class="modal-subtitle">Fill in the employee details below</p>
+        <div class="form-group">
+            <label class="form-label">Full Name</label>
+            <input type="text" class="form-control no-icon" placeholder="Full Name" />
+        </div>
+        <div class="form-group">
+            <label class="form-label">Department</label>
+            <select class="form-control no-icon">
+                <option>Manufacturing</option>
+                <option>Quality Control</option>
+                <option>Logistics</option>
+                <option>Maintenance</option>
+            </select>
+        </div>
+        <div class="form-group">
+            <label class="form-label">Position</label>
+            <input type="text" class="form-control no-icon" placeholder="Position" />
+        </div>
+        <div style="display:flex;gap:12px;margin-top:8px;">
+            <button class="btn btn-outline w-full" onclick="closeModal('addEmployeeModal')">Cancel</button>
+            <button class="btn btn-primary w-full">Add Employee</button>
+        </div>
+    </div>
+</div>

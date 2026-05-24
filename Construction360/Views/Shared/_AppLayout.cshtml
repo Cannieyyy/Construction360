@@ -1,0 +1,139 @@
+﻿@using System.Security.Claims
+@{
+    var role = User.FindFirst(ClaimTypes.Role)?.Value ?? "Employee";
+    var fullName = User.Identity?.Name ?? "User";
+    var initials = User.FindFirst("Initials")?.Value ?? "U";
+    var avatarClass = role == "Admin" ? "admin" : role == "Supervisor" ? "supervisor" : "employee";
+    var unreadNotifs = 2;
+    var currentController = ViewContext.RouteData.Values["controller"]?.ToString() ?? "";
+    var currentAction = ViewContext.RouteData.Values["action"]?.ToString() ?? "";
+}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>@ViewData["Title"] - Construct360</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link href="https://fonts.googleapis.com/css2?family=Sora:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.7.2/css/all.min.css">
+    <link rel="stylesheet" href="~/css/custom.css" />
+</head>
+<body>
+    <div class="app-layout">
+        <!-- SIDEBAR -->
+        <aside class="sidebar" id="sidebar">
+            <div class="sidebar-brand">
+                <div class="brand-icon"><i class="fa-solid fa-city"></i></div>
+                <div class="brand-text">Construct360 <span>by ROCLA</span></div>
+            </div>
+            <div class="sidebar-user">
+                <div class="avatar @avatarClass">@initials</div>
+                <div class="user-info">
+                    <strong>@fullName</strong>
+                    <small>@role</small>
+                </div>
+            </div>
+            <nav class="sidebar-nav">
+                @if (role == "Admin")
+                {
+                    <a href="/Admin/Dashboard" class="nav-item @(currentAction == "Dashboard" ? "active" : "")">
+                        <span class="nav-icon"><i class="fa-solid fa-grid-1"></i></span><span class="nav-label">Dashboard</span>
+                    </a>
+                    <a href="/Admin/Employees" class="nav-item @(currentAction == "Employees" ? "active" : "")">
+                        <span class="nav-icon"><i class="fa-solid fa-users"></i></span><span class="nav-label">Employees</span>
+                    </a>
+                    <a href="/Admin/Attendance" class="nav-item @(currentAction == "Attendance" ? "active" : "")">
+                        <span class="nav-icon"><i class="fa-solid fa-calendar-check"></i></span><span class="nav-label">Attendance</span>
+                    </a>
+                    <a href="/Admin/LeaveManagement" class="nav-item @(currentAction == "LeaveManagement" ? "active" : "")">
+                        <span class="nav-icon"><i class="fa-solid fa-clipboard-list"></i></span><span class="nav-label">Leave Management</span>
+                    </a>
+                    <a href="/Admin/Notifications" class="nav-item @(currentAction == "Notifications" ? "active" : "")">
+                        <span class="nav-icon"><i class="fa-solid fa-bell"></i></span><span class="nav-label">Notifications</span>
+                    </a>
+                    <a href="#" class="nav-item"><span class="nav-icon"><i class="fa-solid fa-chart-column"></i></span><span class="nav-label">Reports</span></a>
+                    <a href="#" class="nav-item"><span class="nav-icon"><i class="fa-solid fa-gear"></i></span><span class="nav-label">Settings</span></a>
+                }
+                else if (role == "Supervisor")
+                {
+                    <a href="/Supervisor/Dashboard" class="nav-item @(currentAction == "Dashboard" ? "active" : "")">
+                        <span class="nav-icon">⊞</span><span class="nav-label">Dashboard</span>
+                    </a>
+                    <a href="/Supervisor/QRScanner" class="nav-item @(currentAction == "QRScanner" ? "active" : "")">
+                        <span class="nav-icon"><i class="fa-solid fa-qrcode"></i></span><span class="nav-label">QR Scanner</span>
+                    </a>
+                    <a href="/Supervisor/Attendance" class="nav-item @(currentAction == "Attendance" ? "active" : "")">
+                        <span class="nav-icon"><i class="fa-solid fa-calendar-check"></i></span><span class="nav-label">Attendance</span>
+                    </a>
+                    <a href="/Supervisor/Productivity" class="nav-item @(currentAction == "Productivity" ? "active" : "")">
+                        <span class="nav-icon"><i class="fa-solid fa-chart-line"></i></span><span class="nav-label">Productivity</span>
+                    </a>
+                    <a href="/Supervisor/LeaveApproval" class="nav-item @(currentAction == "LeaveApproval" ? "active" : "")">
+                        <span class="nav-icon"><i class="fa-solid fa-circle-check"></i></span><span class="nav-label">Leave Approval</span>
+                    </a>
+                    <a href="/Supervisor/Notifications" class="nav-item @(currentAction == "Notifications" ? "active" : "")">
+                        <span class="nav-icon"><i class="fa-solid fa-bell"></i></span><span class="nav-label">Notifications</span>
+                    </a>
+                }
+                else
+                {
+                    <a href="/Employee/Dashboard" class="nav-item @(currentAction == "Dashboard" ? "active" : "")">
+                        <span class="nav-icon">⊞</span><span class="nav-label">Dashboard</span>
+                    </a>
+                    <a href="/Employee/MyQRCode" class="nav-item @(currentAction == "MyQRCode" ? "active" : "")">
+                        <span class="nav-icon"><i class="fa-solid fa-qrcode"></i></span><span class="nav-label">My QR Code</span>
+                    </a>
+                    <a href="/Employee/Attendance" class="nav-item @(currentAction == "Attendance" ? "active" : "")">
+                        <span class="nav-icon"><i class="fa-solid fa-calendar-check"></i></span><span class="nav-label">Attendance</span>
+                    </a>
+                    <a href="/Employee/Productivity" class="nav-item @(currentAction == "Productivity" ? "active" : "")">
+                        <span class="nav-icon"><i class="fa-solid fa-chart-line"></i></span><span class="nav-label">Productivity</span>
+                    </a>
+                    <a href="/Employee/LeaveRequests" class="nav-item @(currentAction == "LeaveRequests" ? "active" : "")">
+                        <span class="nav-icon"><i class="fa-solid fa-file-lines"></i></span><span class="nav-label">Leave Requests</span>
+                    </a>
+                    <a href="/Employee/Notifications" class="nav-item @(currentAction == "Notifications" ? "active" : "")">
+                        <span class="nav-icon"><i class="fa-solid fa-bell"></i></span><span class="nav-label">Notifications</span>
+                    </a>
+                }
+            </nav>
+            <div class="sidebar-footer">
+                <a href="/Account/Logout" class="nav-item"><span class="nav-icon"><i class="fa-solid fa-right-from-bracket"></i></span><span class="nav-label">Logout</span></a>
+                <button class="nav-item collapse-btn" onclick="document.getElementById('sidebar').classList.toggle('collapsed')">
+                    <span class="nav-icon"><i class="fa-solid fa-angle-left"></i></span><span class="nav-label">Collapse</span>
+                </button>
+            </div>
+        </aside>
+
+        <!-- MAIN -->
+        <div class="main-content">
+            <header class="topbar">
+                <span class="topbar-title">@ViewData["PageTitle"]</span>
+                <div class="topbar-search">
+                    <span><i class="fa-solid fa-magnifying-glass"></i></span>
+                    <input type="text" placeholder="Search employees, records..." />
+                </div>
+                <div class="topbar-actions">
+                    <button class="notif-btn" onclick="location.href='/@role/Notifications'">
+                        <i class="fa-solid fa-bell"></i>
+                        @if (unreadNotifs > 0)
+                        {
+                            <span class="notif-badge">@unreadNotifs</span>
+                        }
+                    </button>
+                    <div class="user-chip">
+                        <div class="avatar @avatarClass" style="width:30px;height:30px;font-size:11px;">@initials</div>
+                        @fullName.Split(' ').FirstOrDefault()
+                    </div>
+                </div>
+            </header>
+            <main class="page-content">
+                @RenderBody()
+            </main>
+        </div>
+    </div>
+    <script src="~/js/custom.js"></script>
+    @await RenderSectionAsync("Scripts", required: false)
+</body>
+</html>

@@ -1,0 +1,86 @@
+﻿@using Construction360.Models
+@using Construction360.Enums
+@model List<LeaveRequest>
+@{
+    ViewData["Title"] = "Leave Management";
+    ViewData["PageTitle"] = "Leave Management";
+    Layout = "_AppLayout";
+    var filter = ViewBag.Filter as string ?? "All";
+    int pendingCount = ViewBag.PendingCount;
+}
+
+<div class="page-header flex justify-between items-center">
+    <div>
+        <h1>Leave Management</h1>
+        <p>Review and manage leave requests</p>
+    </div>
+    @if (pendingCount > 0)
+    {
+        <div class="pending-banner"><i class="fa-solid fa-clock"></i> @pendingCount Pending Requests</div>
+    }
+</div>
+
+<div class="filter-tabs">
+    @foreach (var tab in new[] { "All", "Pending", "Approved", "Rejected" })
+    {
+        <a href="?filter=@tab" class="filter-tab @(filter == tab ? "active" : "")">@tab</a>
+    }
+</div>
+
+@foreach (var leave in Model)
+{
+    <div class="leave-card">
+        <div class="leave-info">
+            <div class="emp-avatar">@leave.Initials</div>
+            <div class="leave-details">
+                <div style="display:flex;align-items:center;gap:8px;margin-bottom:4px;">
+                    <strong>@leave.EmployeeName</strong>
+                    <span class="badge @(leave.Type == LeaveType.Sick ? "badge-danger" : leave.Type == LeaveType.Annual ? "badge-info" : "badge-muted")">
+                        @leave.Type Leave
+                    </span>
+                    <span class="badge @(leave.Status == LeaveStatus.Approved ? "badge-success" : leave.Status == LeaveStatus.Pending ? "badge-warning" : "badge-danger")">
+
+                        @if (leave.Status == LeaveStatus.Approved)
+                        {
+                            <i class="fa-solid fa-circle-check"></i>
+                        }
+                        else if (leave.Status == LeaveStatus.Pending)
+                        {
+                            <i class="fa-solid fa-clock"></i>
+                        }
+                        else
+                        {
+                            <i class="fa-solid fa-circle-xmark"></i>
+                        }
+
+                        @leave.Status
+                    </span>
+                </div>
+                <p><i class="fa-solid fa-calendar-days"></i> @leave.StartDate.ToString("M/d/yyyy") – @leave.EndDate.ToString("M/d/yyyy")</p>
+                <p style="margin-top:3px;color:#6b7280;font-size:12.5px;">@leave.Reason</p>
+            </div>
+        </div>
+        <div class="leave-actions">
+            <button class="btn btn-outline btn-sm"><i class="fa-solid fa-eye"></i> View</button>
+            @if (leave.Status == LeaveStatus.Pending)
+            {
+                <form method="post" action="/Admin/ApproveLeave" style="display:inline;">
+                    <input type="hidden" name="id" value="@leave.Id" />
+                    <button type="submit" class="btn btn-success btn-sm">  <i class="fa-solid fa-circle-check"></i></button>
+                </form>
+                <form method="post" action="/Admin/RejectLeave" style="display:inline;">
+                    <input type="hidden" name="id" value="@leave.Id" />
+                    <button type="submit" class="btn btn-danger btn-sm">  <i class="fa-solid fa-circle-xmark"></i></button>
+                </form>
+            }
+        </div>
+    </div>
+}
+
+@if (!Model.Any())
+{
+    <div style="text-align:center;padding:60px;color:#9ca3af;">
+        <div style="font-size:40px;margin-bottom:12px;"><i class="fa-solid fa-clipboard-list"></i></div>
+        <p>No leave requests found</p>
+    </div>
+}
