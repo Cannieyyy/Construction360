@@ -1,5 +1,84 @@
-﻿@*
-    For more information on enabling MVC for empty projects, visit https://go.microsoft.com/fwlink/?LinkID=397860
-*@
+﻿@model Construction360.ViewModels.SupervisorDashboardViewModel
 @{
+    ViewData["Title"] = "Dashboard";
+    ViewData["PageTitle"] = "Supervisor Dashboard";
+    Layout = "_AppLayout";
+}
+
+<div class="quick-action">
+    <div>
+        <strong style="font-size:15px;">Quick Attendance Scanner</strong>
+        <p>Scan employee QR codes to record attendance</p>
+    </div>
+    <a href="/Supervisor/QRScanner" class="btn btn-primary"><i class="fa-solid fa-qrcode"></i> Open Scanner</a>
+</div>
+
+<div class="stat-grid">
+    <div class="stat-card">
+        <div><div class="stat-label">Team Size</div><div class="stat-value">@Model.TeamSize</div></div>
+        <div class="stat-icon"><i class="fa-solid fa-users"></i></div>
+    </div>
+    <div class="stat-card">
+        <div><div class="stat-label">Present Today</div><div class="stat-value">@Model.PresentToday</div><div class="stat-sub">+5% vs last week</div></div>
+        <div class="stat-icon" style="background:#d1fae5;"><i class="fa-solid fa-user-check"></i></div>
+    </div>
+    <div class="stat-card">
+        <div><div class="stat-label">Pending Approvals</div><div class="stat-value">@Model.PendingApprovals</div></div>
+        <div class="stat-icon" style="background:#fef3c7;"><i class="fa-solid fa-clipboard-check"></i></div>
+    </div>
+    <div class="stat-card">
+        <div><div class="stat-label">Team Productivity</div><div class="stat-value">@Model.TeamProductivity%</div><div class="stat-sub">+3% vs last week</div></div>
+        <div class="stat-icon" style="background:#d1fae5;"><i class="fa-solid fa-chart-line"></i></div>
+    </div>
+</div>
+
+<div class="charts-row">
+    <div class="chart-card">
+        <h3>Team Attendance This Week</h3>
+        <canvas id="attendChart" width="420" height="220"></canvas>
+        <div style="display:flex;gap:16px;margin-top:12px;font-size:12px;">
+            <span>
+                <i class="fa-solid fa-square" style="color:#1a2942;"></i>
+                Present
+            </span>
+
+            <span>
+                <i class="fa-solid fa-square" style="color:#c0392b;"></i>
+                Absent
+            </span>
+
+            <span>
+                <i class="fa-solid fa-square" style="color:#d4a847;"></i>
+                Late
+            </span>
+        </div>
+    </div>
+    <div class="chart-card">
+        <h3>Team Productivity Trend</h3>
+        <canvas id="prodChart" width="420" height="220"></canvas>
+        <div style="display:flex;gap:16px;margin-top:12px;font-size:12px;">
+            <span>
+                <i class="fa-solid fa-bullseye"></i>
+                Target
+            </span>
+
+            <span>
+                <i class="fa-solid fa-chart-line"></i>
+                Actual
+            </span>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <script>
+        const attendData = @Html.Raw(System.Text.Json.JsonSerializer.Serialize(Model.WeeklyAttendance.Select(w => new { label = w.Day, values = new[] { w.Present, w.Absent, w.Late } })));
+        drawBarChart('attendChart', attendData, ['#1a2942','#c0392b','#d4a847']);
+
+        const prodData = @Html.Raw(System.Text.Json.JsonSerializer.Serialize(Model.ProductivityTrend));
+        drawLineChart('prodChart', [
+            { values: prodData.map(d => d.target), color: '#9ca3af', dashed: true, labels: prodData.map(d => d.week) },
+            { values: prodData.map(d => d.actual), color: '#1a2942', dashed: false }
+        ]);
+    </script>
 }

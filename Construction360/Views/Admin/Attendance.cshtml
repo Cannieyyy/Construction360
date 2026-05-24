@@ -59,16 +59,16 @@
                         @switch (r.Status)
                         {
                             case AttendanceStatus.Present:
-                                <span class="badge badge-success">Present</span>
+                                <span class="badge badge-success"><i class="fa-solid fa-circle-check"></i> Present</span>
                                 break;
                             case AttendanceStatus.Absent:
-                                <span class="badge badge-danger">Absent</span>
+                                <span class="badge badge-danger"><i class="fa-solid fa-circle-xmark"></i> Absent</span>
                                 break;
                             case AttendanceStatus.Late:
-                                <span class="badge badge-warning">Late</span>
+                                <span class="badge badge-warning"><i class="fa-solid fa-clock"></i> Late</span>
                                 break;
                             default:
-                                <span class="badge badge-muted">On Leave</span>
+                                <span class="badge badge-muted"><i class="fa-solid fa-calendar-minus"></i> On Leave</span>
                                 break;
                         }
                     </td>

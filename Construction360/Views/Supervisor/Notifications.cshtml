@@ -1,0 +1,52 @@
+﻿@using Construction360.Models
+@model List<Notification>
+@{
+    ViewData["Title"] = "Notifications";
+    ViewData["PageTitle"] = "Notifications";
+    Layout = "_AppLayout";
+}
+<div class="page-header flex justify-between items-center">
+    <div><h1>Notifications</h1><p>@ViewBag.UnreadCount unread notifications</p></div>
+    <button class="btn btn-outline btn-sm"><i class="fa-solid fa-check-double"></i> Mark All Read</button>
+</div>
+<div class="filter-tabs">
+    @foreach (var tab in new[] { "All", "Unread", "Info", "Success", "Warning", "Error" })
+    {
+        <a href="#" class="filter-tab @(tab == "All" ? "active" : "")">@tab</a>
+    }
+</div>
+@foreach (var n in Model)
+{
+    var cardClass = n.IsRead ? "" : n.Type == "Warning" ? "warning" : n.Type == "Success" ? "success" : "unread";
+    <div class="notif-card @cardClass">
+        <div style="font-size:22px;line-height:1;">
+
+            @if (n.Type == "Info")
+            {
+                <i class="fa-solid fa-circle-info"></i>
+            }
+            else if (n.Type == "Warning")
+            {
+                <i class="fa-solid fa-triangle-exclamation"></i>
+            }
+            else if (n.Type == "Success")
+            {
+                <i class="fa-solid fa-circle-check"></i>
+            }
+            else
+            {
+                <i class="fa-solid fa-circle-xmark"></i>
+            }
+
+        </div>
+        <div style="flex:1;">
+            <div style="display:flex;justify-content:space-between;margin-bottom:4px;">
+                <strong style="font-size:14px;">@n.Title</strong>
+                <span class="notif-date">@n.Date.ToString("M/d/yyyy")</span>
+            </div>
+            <p style="font-size:13px;color:#6b7280;">@n.Message</p>
+            <a href="#" style="font-size:13px;color:#2563eb;font-weight:600;margin-top:6px;display:inline-block;">View Details</a>
+        </div>
+        <button style="background:none;border:none;cursor:pointer;color:#9ca3af;"><i class="fa-solid fa-trash"></i></button>
+    </div>
+}

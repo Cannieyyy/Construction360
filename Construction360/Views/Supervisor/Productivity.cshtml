@@ -1,0 +1,40 @@
+﻿@using Construction360.Models
+@{
+    ViewData["Title"] = "Productivity";
+    ViewData["PageTitle"] = "Productivity Tracking";
+    Layout = "_AppLayout";
+    var trend = ViewBag.Trend as List<ProductivityRecord> ?? new();
+}
+<div class="page-header"><h1>Productivity Tracking</h1><p>Monitor team performance and efficiency</p></div>
+<div class="stat-grid">
+    <div class="stat-card"><div><div class="stat-label">Avg. Efficiency</div><div class="stat-value">@ViewBag.AvgEfficiency%</div></div><div class="stat-icon" style="background:#ede9fe;"><i class="fa-solid fa-bullseye"></i></div></div>
+    <div class="stat-card"><div><div class="stat-label">Tasks Completed</div><div class="stat-value">@ViewBag.TasksCompleted</div></div><div class="stat-icon" style="background:#d1fae5;"><i class="fa-solid fa-check-double"></i></div></div>
+    <div class="stat-card"><div><div class="stat-label">Total Hours</div><div class="stat-value">@ViewBag.TotalHours</div></div><div class="stat-icon" style="background:#fee2e2;"><i class="fa-solid fa-clock"></i></div></div>
+    <div class="stat-card"><div><div class="stat-label">Top Performer</div><div class="stat-value" style="font-size:20px;">@ViewBag.TopPerformer</div></div><div class="stat-icon"><i class="fa-solid fa-trophy"></i></div></div>
+</div>
+<div class="chart-card">
+    <h3>Weekly Productivity Trend</h3>
+    <canvas id="prodChart" width="800" height="260"></canvas>
+    <div style="display:flex;gap:20px;margin-top:12px;font-size:12.5px;justify-content:center;">
+
+        <span>
+            <i class="fa-solid fa-bullseye"></i>
+            Target
+        </span>
+
+        <span>
+            <i class="fa-solid fa-chart-line"></i>
+            Actual
+        </span>
+
+    </div>
+</div>
+@section Scripts {
+    <script>
+        const trend = @Html.Raw(System.Text.Json.JsonSerializer.Serialize(trend));
+        drawLineChart('prodChart', [
+            { values: trend.map(d => d.target), color: '#9ca3af', dashed: true, labels: trend.map(d => d.week) },
+            { values: trend.map(d => d.actual), color: '#1a2942', dashed: false }
+        ]);
+    </script>
+}

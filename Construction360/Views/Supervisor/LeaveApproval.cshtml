@@ -1,0 +1,83 @@
+﻿@using Construction360.Models
+@using Construction360.Enums
+@model List<LeaveRequest>
+@{
+    ViewData["Title"] = "Leave Approval";
+    ViewData["PageTitle"] = "Leave Approval";
+    Layout = "_AppLayout";
+    int pending = ViewBag.PendingCount;
+}
+<div class="page-header flex justify-between items-center">
+    <div><h1>Leave Approval</h1><p>Review and approve team leave requests</p></div>
+    @if (pending > 0)
+    {
+        <div class="pending-banner"><i class="fa-solid fa-clock"></i> @pending Pending</div>
+    }
+</div>
+<div class="filter-tabs">
+    @foreach (var tab in new[] { "Pending", "Approved", "Rejected", "All" })
+    {
+        <a href="?filter=@tab" class="filter-tab @(ViewBag.Filter == tab ? "active" : "")">@tab</a>
+    }
+</div>
+@foreach (var leave in Model)
+{
+    <div class="leave-card">
+        <div class="leave-info">
+            <div class="emp-avatar">@leave.Initials</div>
+            <div class="leave-details">
+                <div style="display:flex;align-items:center;gap:8px;margin-bottom:4px;">
+                    <strong>@leave.EmployeeName</strong>
+                    <span class="badge @(leave.Status == LeaveStatus.Pending ? "badge-warning" : "badge-muted")">
+
+                        @if (leave.Status == LeaveStatus.Pending)
+                        {
+                            <i class="fa-solid fa-hourglass-half"></i>
+                        }
+                        else if (leave.Status == LeaveStatus.Approved)
+                        {
+                            <i class="fa-solid fa-circle-check"></i>
+                        }
+                        else
+                        {
+                            <i class="fa-solid fa-circle-xmark"></i>
+                        }
+
+                        @leave.Status
+                    </span>
+                </div>
+                <p>
+                    <i class="fa-solid fa-file-circle-minus"></i>
+
+                     @leave.Type Leave
+
+                    &nbsp; · &nbsp;
+
+                    <i class="fa-solid fa-calendar-day"></i>
+
+                     @leave.Days days
+
+                    &nbsp; · &nbsp;
+
+                    <i class="fa-solid fa-calendar-days"></i>
+
+                     @leave.StartDate.ToString("M/d/yyyy")
+                    –
+                     @leave.EndDate.ToString("M/d/yyyy")
+                </p>
+                <p style="margin-top:3px;font-size:12.5px;color:#6b7280;">@leave.Reason</p>
+            </div>
+        </div>
+        @if (leave.Status == LeaveStatus.Pending)
+        {
+            <div class="leave-actions">
+                <form method="post" action="/Supervisor/ApproveLeave" style="display:inline;"><input type="hidden" name="id" value="@leave.Id" /><button class="btn btn-success btn-sm"><i class="fa-solid fa-check"></i> Approve</button></form>
+                <form method="post" action="/Supervisor/RejectLeave" style="display:inline;"><input type="hidden" name="id" value="@leave.Id" /><button class="btn btn-danger btn-sm"><i class="fa-solid fa-xmark"></i> Reject</button></form>
+            </div>
+        }
+    </div>
+}
+@if (!Model.Any())
+{
+    <div style="text-align:center;padding:60px;color:#9ca3af;"><div style="font-size:40px;"><i class="fa-solid fa-clipboard-list"></i></div><p>No requests found</p></div>
+}

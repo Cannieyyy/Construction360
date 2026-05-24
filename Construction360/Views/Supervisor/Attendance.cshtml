@@ -1,0 +1,56 @@
+﻿@using Construction360.Models
+@using Construction360.Enums
+@model List<AttendanceRecord>
+@{
+    ViewData["Title"] = "Attendance";
+    ViewData["PageTitle"] = "Attendance Records";
+    Layout = "_AppLayout";
+    var weekly = ViewBag.Weekly as List<Construction360.ViewModels.WeeklyAttendance> ?? new();
+}
+<div class="page-header"><h1>Attendance</h1><p>Monitor daily attendance records</p></div>
+<div class="stat-grid">
+    <div class="stat-card" style="border-left:4px solid #059669;"><div><div class="stat-label">Present</div><div class="stat-value">@ViewBag.Present</div></div><div class="stat-icon" style="background:#d1fae5;"><i class="fa-solid fa-user-check"></i></div></div>
+    <div class="stat-card" style="border-left:4px solid #dc2626;"><div><div class="stat-label">Absent</div><div class="stat-value">@ViewBag.Absent</div></div><div class="stat-icon" style="background:#fee2e2;"><i class="fa-solid fa-user-xmark"></i></div></div>
+    <div class="stat-card" style="border-left:4px solid #d97706;"><div><div class="stat-label">Late</div><div class="stat-value">@ViewBag.Late</div></div><div class="stat-icon" style="background:#fef3c7;"><i class="fa-solid fa-clock"></i></div></div>
+    <div class="stat-card" ><div><div class="stat-label">On Leave</div><div class="stat-value">@ViewBag.OnLeave</div></div><div class="stat-icon" ><i class="fa-solid fa-calendar-days"></i></div></div>
+</div>
+<div class="chart-card mb-6"><h3>Weekly Attendance Overview</h3><canvas id="weeklyChart" width="800" height="220"></canvas></div>
+<div class="table-card">
+    <table>
+        <thead><tr><th>EMPLOYEE</th><th>STATUS</th><th>CHECK IN</th><th>CHECK OUT</th><th>HOURS</th></tr></thead>
+        <tbody>
+            @foreach (var r in Model)
+            {
+                <tr>
+                    <td><div class="emp-row"><div class="emp-avatar">@string.Concat(r.EmployeeName.Split(' ').Select(w => w.Length > 0 ? w[0].ToString() : ""))</div><div class="emp-name">@r.EmployeeName</div></div></td>
+                    <td>
+                        @switch (r.Status)
+                        {
+                            case AttendanceStatus.Present:
+                                <span class="badge badge-success"><i class="fa-solid fa-circle-check"></i> Present</span>
+                                break;
+                            case AttendanceStatus.Absent:
+                                <span class="badge badge-danger"><i class="fa-solid fa-circle-xmark"></i> Absent</span>
+                                break;
+                            case AttendanceStatus.Late:
+                                <span class="badge badge-warning"><i class="fa-solid fa-clock"></i> Late</span>
+                                break;
+                            default:
+                                <span class="badge badge-muted"><i class="fa-solid fa-calendar-minus"></i> On Leave</span>
+                                break;
+                        }
+                    </td>
+                    <td>@(r.CheckIn.HasValue ? DateTime.Today.Add(r.CheckIn.Value).ToString("hh:mm tt") : "—")</td>
+                    <td>@(r.CheckOut.HasValue ? DateTime.Today.Add(r.CheckOut.Value).ToString("hh:mm tt") : "—")</td>
+                    <td>@(r.Hours > 0 ? $"{r.Hours:0.0}h" : "—")</td>
+                </tr>
+            }
+        </tbody>
+    </table>
+</div>
+@section Scripts {
+    <script>
+        const data = @Html.Raw(System.Text.Json.JsonSerializer.Serialize(weekly.Select(w => new { label = w.Day, values = new[] { w.Present, w.Absent, w.Late } })));
+        drawBarChart('weeklyChart', data, ['#1a2942','#c0392b','#d4a847']);
+    </script>
+}
