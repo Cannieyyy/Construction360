@@ -10,25 +10,25 @@
         <strong style="font-size:15px;">Welcome back, @Model.EmployeeName!</strong>
         <p>Here's your work summary for today</p>
     </div>
-    <a href="/Employee/MyQRCode" class="btn btn-primary">📷 Show My QR Code</a>
+    <a href="/Employee/MyQRCode" class="btn btn-primary"><i class="fa-solid fa-qrcode"></i> Show My QR Code</a>
 </div>
 
 <div class="stat-grid">
     <div class="stat-card">
         <div><div class="stat-label">Days Present</div><div class="stat-value">@Model.DaysPresent</div><div class="stat-sub">This month</div></div>
-        <div class="stat-icon" style="background:#d1fae5;">✅</div>
+        <div class="stat-icon" style="background:#d1fae5;"><i class="fa-solid fa-circle-check"></i></div>
     </div>
     <div class="stat-card">
         <div><div class="stat-label">My Efficiency</div><div class="stat-value">@Model.MyEfficiency%</div><div class="stat-sub">+5% vs last week</div></div>
-        <div class="stat-icon" style="background:#d1fae5;">📈</div>
+        <div class="stat-icon" style="background:#d1fae5;"><i class="fa-solid fa-chart-line"></i></div>
     </div>
     <div class="stat-card">
         <div><div class="stat-label">Pending Leaves</div><div class="stat-value">@Model.PendingLeaves</div></div>
-        <div class="stat-icon" style="background:#fef3c7;">⏰</div>
+        <div class="stat-icon" style="background:#fef3c7;"><i class="fa-solid fa-clock"></i></div>
     </div>
     <div class="stat-card">
         <div><div class="stat-label">Leave Balance</div><div class="stat-value">@Model.LeaveBalance</div><div class="stat-sub">Days remaining</div></div>
-        <div class="stat-icon">📅</div>
+        <div class="stat-icon"><i class="fa-solid fa-calendar-days"></i></div>
     </div>
 </div>
 
@@ -38,7 +38,7 @@
         @if (Model.TodayAttendance != null)
         {
             <div style="display:flex;align-items:center;gap:12px;background:#f0fdf4;border:1px solid #bbf7d0;border-radius:10px;padding:14px 16px;margin-bottom:16px;">
-                <span style="font-size:24px;">✅</span>
+                <span style="font-size:24px;"><i class="fa-solid fa-circle-check"></i></span>
                 <div style="flex:1;">
                     <strong>Checked In</strong>
                     <p style="font-size:12.5px;color:#6b7280;">Today at @DateTime.Today.Add(Model.TodayAttendance.CheckIn ?? TimeSpan.Zero).ToString("h:mm tt")</p>
