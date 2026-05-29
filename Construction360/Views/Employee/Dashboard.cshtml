@@ -1,0 +1,85 @@
+﻿@model Construction360.ViewModels.EmployeeDashboardViewModel
+@{
+    ViewData["Title"] = "My Dashboard";
+    ViewData["PageTitle"] = "My Dashboard";
+    Layout = "_AppLayout";
+}
+
+<div class="quick-action">
+    <div>
+        <strong style="font-size:15px;">Welcome back, @Model.EmployeeName!</strong>
+        <p>Here's your work summary for today</p>
+    </div>
+    <a href="/Employee/MyQRCode" class="btn btn-primary">📷 Show My QR Code</a>
+</div>
+
+<div class="stat-grid">
+    <div class="stat-card">
+        <div><div class="stat-label">Days Present</div><div class="stat-value">@Model.DaysPresent</div><div class="stat-sub">This month</div></div>
+        <div class="stat-icon" style="background:#d1fae5;">✅</div>
+    </div>
+    <div class="stat-card">
+        <div><div class="stat-label">My Efficiency</div><div class="stat-value">@Model.MyEfficiency%</div><div class="stat-sub">+5% vs last week</div></div>
+        <div class="stat-icon" style="background:#d1fae5;">📈</div>
+    </div>
+    <div class="stat-card">
+        <div><div class="stat-label">Pending Leaves</div><div class="stat-value">@Model.PendingLeaves</div></div>
+        <div class="stat-icon" style="background:#fef3c7;">⏰</div>
+    </div>
+    <div class="stat-card">
+        <div><div class="stat-label">Leave Balance</div><div class="stat-value">@Model.LeaveBalance</div><div class="stat-sub">Days remaining</div></div>
+        <div class="stat-icon">📅</div>
+    </div>
+</div>
+
+<div class="charts-row">
+    <div class="card" style="padding:24px;">
+        <h3 style="font-size:15px;font-weight:700;margin-bottom:18px;">Today's Attendance</h3>
+        @if (Model.TodayAttendance != null)
+        {
+            <div style="display:flex;align-items:center;gap:12px;background:#f0fdf4;border:1px solid #bbf7d0;border-radius:10px;padding:14px 16px;margin-bottom:16px;">
+                <span style="font-size:24px;">✅</span>
+                <div style="flex:1;">
+                    <strong>Checked In</strong>
+                    <p style="font-size:12.5px;color:#6b7280;">Today at @DateTime.Today.Add(Model.TodayAttendance.CheckIn ?? TimeSpan.Zero).ToString("h:mm tt")</p>
+                </div>
+                <span style="color:#059669;font-weight:600;font-size:13px;">On Time</span>
+            </div>
+            <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;">
+                <div style="background:#f9fafb;border-radius:10px;padding:16px;text-align:center;">
+                    <div style="font-size:12px;color:#6b7280;margin-bottom:4px;">Check In</div>
+                    <div style="font-size:20px;font-weight:800;">@(Model.TodayAttendance.CheckIn.HasValue ? DateTime.Today.Add(Model.TodayAttendance.CheckIn.Value).ToString("h:mm tt") : "--:--")</div>
+                </div>
+                <div style="background:#f9fafb;border-radius:10px;padding:16px;text-align:center;">
+                    <div style="font-size:12px;color:#6b7280;margin-bottom:4px;">Check Out</div>
+                    <div style="font-size:20px;font-weight:800;">@(Model.TodayAttendance.CheckOut.HasValue ? DateTime.Today.Add(Model.TodayAttendance.CheckOut.Value).ToString("h:mm tt") : "--:--")</div>
+                </div>
+            </div>
+        }
+        else
+        {
+            <div style="text-align:center;padding:32px;color:#9ca3af;"><p>No attendance record for today</p></div>
+        }
+    </div>
+
+    <div class="card" style="padding:24px;">
+        <h3 style="font-size:15px;font-weight:700;margin-bottom:18px;">Today's Productivity</h3>
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;">
+            <span style="font-size:13.5px;">Tasks Completed</span>
+            <span style="font-weight:700;">@Model.TasksCompleted/@Model.TotalTasks</span>
+        </div>
+        <div class="progress-bar-wrap" style="height:10px;margin-bottom:24px;">
+            <div class="progress-bar blue" style="width:@(Model.TotalTasks > 0 ? (Model.TasksCompleted * 100 / Model.TotalTasks) : 0)%;"></div>
+        </div>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;">
+            <div style="background:#f9fafb;border-radius:10px;padding:16px;text-align:center;">
+                <div style="font-size:12px;color:#6b7280;margin-bottom:4px;">Target</div>
+                <div style="font-size:20px;font-weight:800;">100%</div>
+            </div>
+            <div style="background:#f9fafb;border-radius:10px;padding:16px;text-align:center;">
+                <div style="font-size:12px;color:#6b7280;margin-bottom:4px;">Actual</div>
+                <div style="font-size:20px;font-weight:800;color:#059669;">@Model.MyEfficiency%</div>
+            </div>
+        </div>
+    </div>
+</div>
