@@ -1,0 +1,73 @@
+﻿@{
+    ViewData["Title"] = "My QR Code";
+    ViewData["PageTitle"] = "My QR Code";
+    Layout = "_AppLayout";
+    string empId = ViewBag.EmployeeId;
+    string fullName = ViewBag.FullName;
+    string initials = ViewBag.Initials;
+}
+
+<div class="page-header" style="text-align:center;">
+    <h1>My Digital ID Card</h1>
+    <p>Show this QR code at the scanner for attendance</p>
+</div>
+
+<div style="max-width:400px;margin:0 auto;">
+    <div class="qr-card">
+        <div class="qr-card-header">
+            <div>
+                <strong style="font-size:15px;">ROCLA</strong>
+                <p style="font-size:12px;opacity:0.7;">Concrete Manufacturing</p>
+            </div>
+            <div style="text-align:right;">
+                <p style="font-size:11px;opacity:0.7;">Employee ID</p>
+                <strong style="font-size:13px;">@empId</strong>
+            </div>
+        </div>
+        <div class="qr-body">
+            <div class="qr-placeholder">
+                <canvas id="qrCanvas" width="160" height="160"></canvas>
+            </div>
+            <div class="emp-avatar" style="width:48px;height:48px;font-size:16px;margin:0 auto 12px;">@initials</div>
+            <strong style="font-size:18px;">@fullName</strong>
+        </div>
+    </div>
+    <div style="text-align:center;margin-top:20px;">
+        <button class="btn btn-outline" onclick="window.print()"><i class="fa-solid fa-print"></i> Print ID Card</button>
+    </div>
+</div>
+
+@section Scripts {
+    <script>
+        // Draw a simple QR-like pattern on canvas
+        const canvas = document.getElementById('qrCanvas');
+        const ctx = canvas.getContext('2d');
+        const size = 160;
+        const cells = 10;
+        const cell = size / cells;
+
+        // Seed-based pseudo-random from employee ID
+        const seed = '@empId'.split('').reduce((a, c) => a + c.charCodeAt(0), 0);
+        function rand(i) { return ((seed * 9301 + i * 49297) % 233280) / 233280 > 0.5; }
+
+        ctx.fillStyle = 'white';
+        ctx.fillRect(0, 0, size, size);
+
+        for (let row = 0; row < cells; row++) {
+            for (let col = 0; col < cells; col++) {
+                const isFinder = (row < 3 && col < 3) || (row < 3 && col >= cells-3) || (row >= cells-3 && col < 3);
+                if (isFinder || rand(row * cells + col)) {
+                    ctx.fillStyle = '#1a2942';
+                    ctx.fillRect(col * cell + 1, row * cell + 1, cell - 2, cell - 2);
+                }
+            }
+        }
+        // Finder squares
+        [[0,0],[0,7],[7,0]].forEach(([r,c]) => {
+            ctx.strokeStyle = '#1a2942'; ctx.lineWidth = 2;
+            ctx.strokeRect(c*cell, r*cell, 3*cell, 3*cell);
+            ctx.fillStyle = '#1a2942';
+            ctx.fillRect(c*cell+cell*0.5, r*cell+cell*0.5, 2*cell, 2*cell);
+        });
+    </script>
+}

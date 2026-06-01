@@ -1,0 +1,173 @@
+﻿@using Construction360.Models
+@using Construction360.Enums
+@model List<Construction360.Models.LeaveRequest>
+@{
+    ViewData["Title"] = "Leave Requests";
+    ViewData["PageTitle"] = "Leave Requests";
+    Layout = "_AppLayout";
+    string empId = ViewBag.EmployeeId;
+    string fullName = ViewBag.FullName;
+    string initials = ViewBag.Initials;
+    int annualUsed = ViewBag.AnnualUsed;
+    int annualTotal = ViewBag.AnnualTotal;
+    int sickUsed = ViewBag.SickUsed;
+    int sickTotal = ViewBag.SickTotal;
+    int personalUsed = ViewBag.PersonalUsed;
+    int personalTotal = ViewBag.PersonalTotal;
+}
+
+<div class="ph-row page-header">
+    <div>
+        <h1>My Leave Requests</h1>
+        <p>View and manage your leave applications</p>
+    </div>
+    <button class="btn btn-primary" onclick="document.getElementById('newLeaveModal').classList.add('open')">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" width="15" height="15"><line x1="12" y1="5" x2="12" y2="19" /><line x1="5" y1="12" x2="19" y2="12" /></svg>
+        New Request
+    </button>
+</div>
+
+<!-- Leave Balance Cards -->
+<div style="display:grid; grid-template-columns:repeat(3,1fr); gap:16px; margin-bottom:22px;">
+    <div class="card card-body">
+        <div style="font-size:13px; font-weight:600; color:#6b7280; margin-bottom:8px;">Annual Leave</div>
+        <div style="display:flex; align-items:baseline; gap:4px;">
+            <span style="font-size:32px; font-weight:800; color:#1a2942;">@annualUsed</span>
+            <span style="font-size:14px; color:#9ca3af;">/ @annualTotal days</span>
+        </div>
+        <div class="prog-wrap" style="margin-top:10px;">
+            <div class="prog" style="width:@(annualTotal > 0 ? (annualUsed * 100 / annualTotal) : 0)%; background:#1a2942;"></div>
+        </div>
+    </div>
+    <div class="card card-body">
+        <div style="font-size:13px; font-weight:600; color:#6b7280; margin-bottom:8px;">Sick Leave</div>
+        <div style="display:flex; align-items:baseline; gap:4px;">
+            <span style="font-size:32px; font-weight:800; color:#dc2626;">@sickUsed</span>
+            <span style="font-size:14px; color:#9ca3af;">/ @sickTotal days</span>
+        </div>
+        <div class="prog-wrap" style="margin-top:10px;">
+            <div class="prog" style="width:@(sickTotal > 0 ? (sickUsed * 100 / sickTotal) : 0)%; background:#dc2626;"></div>
+        </div>
+    </div>
+    <div class="card card-body">
+        <div style="font-size:13px; font-weight:600; color:#6b7280; margin-bottom:8px;">Personal Leave</div>
+        <div style="display:flex; align-items:baseline; gap:4px;">
+            <span style="font-size:32px; font-weight:800; color:#059669;">@personalUsed</span>
+            <span style="font-size:14px; color:#9ca3af;">/ @personalTotal days</span>
+        </div>
+        <div class="prog-wrap" style="margin-top:10px;">
+            <div class="prog" style="width:@(personalTotal > 0 ? (personalUsed * 100 / personalTotal) : 0)%; background:#059669;"></div>
+        </div>
+    </div>
+</div>
+
+<!-- Request History -->
+<div class="card">
+    <div style="padding:18px 20px; border-bottom:1px solid #e5e7eb;">
+        <span style="font-size:15px; font-weight:700;">Request History</span>
+    </div>
+
+    @if (!Model.Any())
+    {
+        <div class="empty-state">
+            <div style="font-size:38px; margin-bottom:10px;">
+                <svg viewBox="0 0 24 24" fill="none" stroke="#d1d5db" stroke-width="1.5" stroke-linecap="round" width="48" height="48">
+                    <rect x="3" y="4" width="18" height="18" rx="2" />
+                    <line x1="16" y1="2" x2="16" y2="6" />
+                    <line x1="8" y1="2" x2="8" y2="6" />
+                    <line x1="3" y1="10" x2="21" y2="10" />
+                </svg>
+            </div>
+            <p style="font-weight:600; color:#6b7280;">No leave requests yet</p>
+            <p style="font-size:13px; color:#9ca3af; margin-top:4px;">Click "New Request" to submit your first leave application</p>
+        </div>
+    }
+    else
+    {
+        @foreach (var leave in Model)
+        {
+            <div style="display:flex; align-items:center; justify-content:space-between; padding:16px 20px; border-bottom:1px solid #f3f4f6; gap:16px; flex-wrap:wrap;">
+                <div style="display:flex; align-items:flex-start; gap:14px;">
+                    <div style="width:38px; height:38px; border-radius:9px; background:#f0f4f8; display:flex; align-items:center; justify-content:center; flex-shrink:0;">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="#6b7280" stroke-width="1.8" stroke-linecap="round" width="18" height="18">
+                            <rect x="3" y="4" width="18" height="18" rx="2" />
+                            <line x1="16" y1="2" x2="16" y2="6" />
+                            <line x1="8" y1="2" x2="8" y2="6" />
+                            <line x1="3" y1="10" x2="21" y2="10" />
+                        </svg>
+                    </div>
+                    <div>
+                        <div style="display:flex; align-items:center; gap:8px; margin-bottom:4px; flex-wrap:wrap;">
+                            <span style="font-weight:700; font-size:14px;">@leave.Type Leave</span>
+                            @if (leave.Status == LeaveStatus.Pending)
+                            {
+                                <span class="badge b-warning">Pending</span>
+                            }
+                            else if (leave.Status == LeaveStatus.Approved)
+                            {
+                                <span class="badge b-success">Approved</span>
+                            }
+                            else
+                            {
+                                <span class="badge b-danger">Rejected</span>
+                            }
+                        </div>
+                        <div style="font-size:13px; color:#6b7280;">
+                            @leave.StartDate.ToString("M/d/yyyy") – @leave.EndDate.ToString("M/d/yyyy") &nbsp;·&nbsp; @leave.Days days
+                        </div>
+                        <div style="font-size:12.5px; color:#9ca3af; margin-top:3px;">@leave.Reason</div>
+                    </div>
+                </div>
+                <div style="text-align:right; flex-shrink:0;">
+                    <div style="font-size:12px; color:#9ca3af;">Submitted</div>
+                    <div style="font-size:13px; font-weight:600; color:#6b7280;">@leave.SubmittedDate.ToString("M/d/yyyy")</div>
+                </div>
+            </div>
+        }
+    }
+</div>
+
+<!-- New Leave Request Modal -->
+<div id="newLeaveModal" style="display:none; position:fixed; inset:0; background:rgba(0,0,0,0.45); z-index:200; align-items:center; justify-content:center; padding:20px;"
+     onclick="if(event.target===this) this.style.display='none'">
+    <div style="background:white; border-radius:16px; padding:32px; width:100%; max-width:460px; box-shadow:0 8px 40px rgba(0,0,0,0.15);">
+        <h3 style="font-size:18px; font-weight:800; margin-bottom:6px;">New Leave Request</h3>
+        <p style="font-size:13.5px; color:#6b7280; margin-bottom:24px;">Fill in the details for your leave application</p>
+
+        <form method="post" asp-action="SubmitLeaveRequest" asp-controller="Employee">
+            <div class="form-group">
+                <label class="form-label">Leave Type</label>
+                <select name="type" class="form-control no-icon" style="padding:11px 14px;">
+                    <option value="Annual">Annual Leave</option>
+                    <option value="Sick">Sick Leave</option>
+                    <option value="Personal">Personal Leave</option>
+                </select>
+            </div>
+            <div style="display:grid; grid-template-columns:1fr 1fr; gap:12px;">
+                <div class="form-group">
+                    <label class="form-label">Start Date</label>
+                    <input type="date" name="startDate" class="form-control no-icon" required />
+                </div>
+                <div class="form-group">
+                    <label class="form-label">End Date</label>
+                    <input type="date" name="endDate" class="form-control no-icon" required />
+                </div>
+            </div>
+            <div class="form-group">
+                <label class="form-label">Reason</label>
+                <textarea name="reason" class="form-control no-icon" rows="3"
+                          style="padding:11px 14px; resize:vertical; font-family:inherit;"
+                          placeholder="Brief description of your reason..."></textarea>
+            </div>
+            <div style="display:flex; gap:10px; margin-top:8px;">
+                <button type="button" class="btn btn-outline" style="flex:1;"
+                        onclick="document.getElementById('newLeaveModal').style.display='none'">
+                    Cancel
+                </button>
+                <button type="submit" class="btn btn-primary" style="flex:1;">Submit Request</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+

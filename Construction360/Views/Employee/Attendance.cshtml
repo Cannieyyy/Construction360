@@ -1,0 +1,50 @@
+﻿@using Construction360.Models  
+@using Construction360.Enums
+@model List<AttendanceRecord>
+@{
+    ViewData["Title"] = "My Attendance";
+    ViewData["PageTitle"] = "My Attendance";
+    Layout = "_AppLayout";
+    TimeSpan? avgCheckIn = ViewBag.AvgCheckIn;
+}
+<div class="page-header"><h1>My Attendance</h1></div>
+<div class="stat-grid">
+    <div class="stat-card"><div><div class="stat-label">Present</div><div class="stat-value">@ViewBag.Present</div></div><div class="stat-icon" style="background:#d1fae5;"><i class="fa-solid fa-circle-check"></i></div></div>
+    <div class="stat-card"><div><div class="stat-label">Absent</div><div class="stat-value">@ViewBag.Absent</div></div><div class="stat-icon" style="background:#fee2e2;"> <i class="fa-solid fa-circle-xmark"></i></div></div>
+    <div class="stat-card"><div><div class="stat-label">Late Arrivals</div><div class="stat-value">@ViewBag.Late</div></div><div class="stat-icon" style="background:#fef3c7;"><i class="fa-solid fa-clock"></i></div></div>
+    <div class="stat-card"><div><div class="stat-label">Avg. Check In</div><div class="stat-value" style="font-size:18px;">@(avgCheckIn.HasValue ? DateTime.Today.Add(avgCheckIn.Value).ToString("h:mm tt") : "N/A")</div></div><div class="stat-icon"> <i class="fa-regular fa-clock"></i></div></div>
+</div>
+<div class="table-card">
+    <div style="padding:16px 20px;border-bottom:1px solid var(--border);font-weight:700;">Attendance History <span style="font-weight:400;font-size:13px;color:#6b7280;margin-left:8px;">Last 30 days</span></div>
+    <table>
+        <thead><tr><th>DATE</th><th>CHECK IN</th><th>CHECK OUT</th><th>HOURS</th><th>STATUS</th></tr></thead>
+        <tbody>
+            @foreach (var r in Model)
+            {
+                <tr>
+                    <td><strong>@r.Date.ToString("ddd")</strong><br><span style="font-size:12px;color:#6b7280;">@r.Date.ToString("M/d/yyyy")</span></td>
+                    <td>@(r.CheckIn.HasValue ? DateTime.Today.Add(r.CheckIn.Value).ToString("hh:mm tt") : "—")</td>
+                    <td>@(r.CheckOut.HasValue ? DateTime.Today.Add(r.CheckOut.Value).ToString("hh:mm tt") : "—")</td>
+                    <td>@(r.Hours > 0 ? $"{r.Hours:0.0}h" : "—")</td>
+                    <td>
+                        @switch (r.Status)
+                        {
+                            case AttendanceStatus.Present:
+                                <span class="badge badge-success"><i class="fa-solid fa-circle-check"></i> Present</span>
+                                break;
+                            case AttendanceStatus.Absent:
+                                <span class="badge badge-danger"><i class="fa-solid fa-circle-xmark"></i> Absent</span>
+                                break;
+                            case AttendanceStatus.Late:
+                                <span class="badge badge-warning"> <i class="fa-solid fa-clock"></i> Late</span>
+                                break;
+                            default:
+                                <span class="badge badge-muted"><i class="fa-solid fa-calendar-days"></i> On Leave</span>
+                                break;
+                        }
+                    </td>
+                </tr>
+            }
+        </tbody>
+    </table>
+</div>
