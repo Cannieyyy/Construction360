@@ -9,7 +9,6 @@ namespace Construction360.Models
     {
         new User { Id = 1, FullName = "Keoagile Mafora", Username = "keo.admin", Email = "admin@rocla.com", PasswordHash = "admin123", Role = UserRole.Admin, Department = "Administration", Position = "Administrator", EmployeeId = "EMP-ADMIN-001" },
         new User { Id = 2, FullName = "Mulweli Mbedzi", Username = "mulweli.super", Email = "supervisor@rocla.com", PasswordHash = "super123", Role = UserRole.Supervisor, Department = "Manufacturing", Position = "Supervisor", EmployeeId = "EMP-SUP-001" },
-        new User { Id = 3, FullName = "Ndivhuwo Ranwedzi", Username = "ndivho.emp", Email = "employee@rocla.com", PasswordHash = "emp123", Role = UserRole.Employee, Department = "Manufacturing", Position = "Machine Operator", EmployeeId = "EMP-2023-001" },
     };
 
         public static List<Employee> Employees { get; } = new()

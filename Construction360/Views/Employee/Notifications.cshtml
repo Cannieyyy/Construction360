@@ -1,141 +1,62 @@
-﻿@model List<Construction360.Models.Notification>
+﻿@using Construction360.Models
+@model List<Notification>
 @{
     ViewData["Title"] = "Notifications";
     ViewData["PageTitle"] = "Notifications";
     Layout = "_AppLayout";
-    string empId = ViewBag.EmployeeId;
-    string fullName = ViewBag.FullName;
-    string initials = ViewBag.Initials;
-    int unread = Model.Count(n => !n.IsRead);
+    int unread = ViewBag.UnreadCount;
 }
 
-<div class="ph-row page-header">
+<div class="page-header flex justify-between items-center">
     <div>
         <h1>Notifications</h1>
-        <p>@unread unread notification@(unread != 1 ? "s" : "")</p>
+        <p>@unread unread notifications</p>
     </div>
-    @if (unread > 0)
-    {
-        <form method="post" asp-action="MarkAllRead" asp-controller="Employee">
-            <button type="submit" class="btn btn-outline btn-sm">
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" width="14" height="14">
-                    <polyline points="20 6 9 17 4 12" />
-                </svg>
-                Mark All Read
-            </button>
+    <div style="display:flex;gap:10px;">
+        <form method="post" action="/Admin/MarkAllRead">
+            <button class="btn btn-outline btn-sm"> <i class="fa-solid fa-check-double"></i> Mark All Read</button>
         </form>
+        <button class="btn btn-primary btn-sm"><i class="fa-solid fa-paper-plane"></i> Send Notification</button>
+    </div>
+</div>
+
+<div class="filter-tabs">
+    @foreach (var tab in new[] { "All", "Unread", "Info", "Success", "Warning", "Error" })
+    {
+        <a href="#" class="filter-tab @(tab == "All" ? "active" : "")">@tab</a>
     }
 </div>
 
-<!-- Filter Tabs -->
-<div class="tabs" style="margin-bottom:20px;">
-    @foreach (var tab in new[] { "All", "Unread", "Info", "Success", "Warning" })
-    {
-        <a href="#" class="tab @(tab == "All" ? "active" : "")"
-           onclick="filterNotifs('@tab', this); return false;">@tab</a>
-    }
-</div>
-
-<!-- Notification List -->
-<div id="notifList">
-    @if (!Model.Any())
-    {
-        <div class="empty-state card">
-            <div style="padding:56px 20px; text-align:center; color:#9ca3af;">
-                <svg viewBox="0 0 24 24" fill="none" stroke="#d1d5db" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" width="48" height="48" style="margin-bottom:12px;">
-                    <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9" />
-                    <path d="M13.73 21a2 2 0 0 1-3.46 0" />
-                </svg>
-                <p style="font-weight:600;">No notifications</p>
-                <p style="font-size:13px; margin-top:4px;">You're all caught up</p>
-            </div>
+@foreach (var n in Model)
+{
+    var cardClass = n.IsRead ? "" : n.Type == "Warning" ? "warning" : n.Type == "Success" ? "success" : "unread";
+    <div class="notif-card @cardClass">
+        <div style="font-size:24px;line-height:1;">
+            @if (n.Type == "Info")
+            {
+                <i class="fa-solid fa-circle-info"></i>
+            }
+            else if (n.Type == "Warning")
+            {
+                <i class="fa-solid fa-triangle-exclamation"></i>
+            }
+            else if (n.Type == "Success")
+            {
+                <i class="fa-solid fa-circle-check"></i>
+            }
+            else
+            {
+                <i class="fa-solid fa-circle-xmark"></i>
+            }
         </div>
-    }
-    else
-    {
-        @foreach (var n in Model)
-        {
-            var borderColor = n.Type == "Warning" ? "#d97706" : n.Type == "Success" ? "#059669" : n.Type == "Error" ? "#dc2626" : "#2563eb";
-            var bgColor = n.IsRead ? "white" : "#fafbff";
-            <div class="notif-item" data-type="@n.Type" data-read="@n.IsRead.ToString().ToLower()"
-                 style="background:@bgColor; border:1px solid #e5e7eb; border-left:4px solid @borderColor; border-radius:12px; padding:16px 18px; margin-bottom:10px; display:flex; align-items:flex-start; gap:14px; box-shadow:0 1px 3px rgba(0,0,0,.04);">
-
-                <!-- Icon -->
-                <div style="width:36px; height:36px; border-radius:9px; background:@(n.Type == "Warning" ? "#fef3c7" : n.Type == "Success" ? "#d1fae5" : n.Type == "Error" ? "#fee2e2" : "#dbeafe"); display:flex; align-items:center; justify-content:center; flex-shrink:0; margin-top:1px;">
-                    @if (n.Type == "Warning")
-                    {
-                        <svg viewBox="0 0 24 24" fill="none" stroke="#d97706" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" width="16" height="16">
-                            <path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z" />
-                            <line x1="12" y1="9" x2="12" y2="13" />
-                            <line x1="12" y1="17" x2="12.01" y2="17" />
-                        </svg>
-                    }
-                    else if (n.Type == "Success")
-                    {
-                        <svg viewBox="0 0 24 24" fill="none" stroke="#059669" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" width="16" height="16">
-                            <polyline points="20 6 9 17 4 12" />
-                        </svg>
-                    }
-                    else if (n.Type == "Error")
-                    {
-                        <svg viewBox="0 0 24 24" fill="none" stroke="#dc2626" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" width="16" height="16">
-                            <circle cx="12" cy="12" r="10" />
-                            <line x1="15" y1="9" x2="9" y2="15" />
-                            <line x1="9" y1="9" x2="15" y2="15" />
-                        </svg>
-                    }
-                    else
-                    {
-                        <svg viewBox="0 0 24 24" fill="none" stroke="#2563eb" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" width="16" height="16">
-                            <circle cx="12" cy="12" r="10" />
-                            <line x1="12" y1="8" x2="12" y2="12" />
-                            <line x1="12" y1="16" x2="12.01" y2="16" />
-                        </svg>
-                    }
-                </div>
-
-                <!-- Content -->
-                <div style="flex:1; min-width:0;">
-                    <div style="display:flex; align-items:flex-start; justify-content:space-between; gap:12px; margin-bottom:4px;">
-                        <span style="font-weight:700; font-size:14px; color:#1a2942;">
-                            @n.Title
-                            @if (!n.IsRead)
-                            {
-                                <span style="display:inline-block; width:7px; height:7px; background:#2563eb; border-radius:50%; margin-left:6px; vertical-align:middle;"></span>
-                            }
-                        </span>
-                        <span style="font-size:12px; color:#9ca3af; white-space:nowrap; flex-shrink:0;">@n.Date.ToString("MMM d, yyyy")</span>
-                    </div>
-                    <p style="font-size:13px; color:#6b7280; line-height:1.5;">@n.Message</p>
-                    <a href="#" style="font-size:13px; color:#2d6a8f; font-weight:600; margin-top:6px; display:inline-block;">View Details</a>
-                </div>
-
-                <!-- Delete button -->
-                <button onclick="this.closest('.notif-item').remove()"
-                        style="background:none; border:none; cursor:pointer; color:#d1d5db; padding:4px; flex-shrink:0; display:flex; align-items:center;"
-                        title="Dismiss">
-                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" width="15" height="15">
-                        <polyline points="3 6 5 6 21 6" />
-                        <path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6" />
-                        <path d="M10 11v6" />
-                        <path d="M14 11v6" />
-                        <path d="M9 6V4h6v2" />
-                    </svg>
-                </button>
+        <div style="flex:1;">
+            <div style="display:flex;justify-content:space-between;margin-bottom:4px;">
+                <strong style="font-size:14px;">@n.Title</strong>
+                <span class="notif-date">@n.Date.ToString("M/d/yyyy")</span>
             </div>
-        }
-    }
-</div>
-
-<script>
-    function filterNotifs(type, el) {
-        document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
-        el.classList.add('active');
-
-        document.querySelectorAll('.notif-item').forEach(item => {
-            const matchType = type === 'All' || item.dataset.type === type;
-            const matchUnread = type !== 'Unread' || item.dataset.read === 'false';
-            item.style.display = (matchType && matchUnread) ? 'flex' : 'none';
-        });
-    }
-</script>
+            <p style="font-size:13px;color:#6b7280;">@n.Message</p>
+            <a href="#" style="font-size:13px;color:#2563eb;font-weight:600;margin-top:6px;display:inline-block;"><i class="fa-solid fa-eye"></i> View Details</a>
+        </div>
+        <button style="background:none;border:none;cursor:pointer;color:#9ca3af;font-size:16px;"><i class="fa-solid fa-trash"></i></button>
+    </div>
+}
