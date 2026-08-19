@@ -3,6 +3,7 @@
     ViewData["Title"] = "Login";
     Layout = "_Layout";
 }
+
 <div class="hero" style="min-height:100vh;">
     <nav class="navbar-public">
         <div style="display:flex;align-items:center;gap:10px;">
@@ -20,60 +21,92 @@
             <a asp-controller="Account" asp-action="Register" class="btn btn-primary">Get Started</a>
         </div>
     </nav>
-<div class="auth-page">
-    <div class="auth-card">
-        <div class="auth-brand">
-            <div class="brand-icon" style="background:#1a2942;">🏗</div>
-            <span class="auth-brand-text">Construct360 <span>by ROCLA</span></span>
-        </div>
-        <h2 class="auth-title">Welcome back</h2>
-        <p class="auth-subtitle">Sign in to your account to continue</p>
 
-        @if (!string.IsNullOrEmpty(Model.Error))
-        {
-            <div class="error-alert">@Model.Error</div>
-        }
+    <div class="auth-page">
+        <div class="auth-card">
+            <div class="auth-brand">
+                <div class="brand-icon" style="background:#1a2942;">🏗</div>
+                <span class="auth-brand-text">Construct360 <span>by ROCLA</span></span>
+            </div>
+            <h2 class="auth-title">Welcome back</h2>
+            <p class="auth-subtitle">Sign in to your account to continue</p>
 
-        <form method="post">
-            <div class="form-group">
-                <label class="form-label">Email Address</label>
-                <div class="input-wrap">
+            @if (TempData["SuccessMessage"] != null)
+            {
+                <div class="success-alert">
+                    <i class="fa-solid fa-circle-check"></i> @TempData["SuccessMessage"]
+                </div>
+            }
+
+            @if (!ViewData.ModelState.IsValid && ViewData.ModelState.ErrorCount > 0)
+            {
+                <div class="error-alert">
+                    <i class="fa-solid fa-circle-exclamation"></i>
+                    @Html.ValidationSummary(true, "", new { @class = "text-danger" })
+                </div>
+            }
+
+            <form method="post" asp-antiforgery="true">
+                <div class="form-group">
+                    <label class="form-label" for="Email">Email Address</label>
+                    <div class="input-wrap">
                         <span class="input-icon"><i class="fa-regular fa-envelope"></i></span>
-                    <input name="Email" type="email" class="form-control" placeholder="role@rocla.com" value="@Model.Email" required />
+                        <input id="Email" name="Email" type="email" class="form-control" 
+                               placeholder="role@rocla.com" value="@Model.Email" required />
+                    </div>
+                    <span asp-validation-for="Email" class="text-danger"></span>
                 </div>
-            </div>
-            <div class="form-group">
-                <label class="form-label">Password</label>
-                <div class="input-wrap">
+
+                <div class="form-group">
+                    <label class="form-label" for="Password">Password</label>
+                    <div class="input-wrap">
                         <span class="input-icon"><i class="fa-solid fa-lock"></i></span>
-                    <input name="Password" id="pwdInput" type="password" class="form-control" placeholder="myP@55" required />
-                        <button type="button" class="eye-toggle" onclick="togglePwd('pwdInput', this)"><i class="fa-regular fa-eye"></i></button>
+                        <input id="Password" name="Password" type="password" class="form-control" 
+                               placeholder="Enter your password" required />
+                        <button type="button" class="eye-toggle" onclick="togglePasswordVisibility('Password', this)">
+                            <i class="fa-regular fa-eye"></i>
+                        </button>
+                    </div>
+                    <span asp-validation-for="Password" class="text-danger"></span>
                 </div>
+
+                <div class="form-check">
+                    <label>
+                        <input type="checkbox" name="RememberMe" value="true" /> 
+                        <input type="hidden" name="RememberMe" value="false" />
+                        Remember me
+                    </label>
+                    <a href="#" class="link">Forgot password?</a>
+                </div>
+
+                <button type="submit" class="btn btn-primary btn-full">
+                    <i class="fa-solid fa-arrow-right-to-bracket"></i> Sign In
+                </button>
+            </form>
+
+            <div class="auth-footer">
+                Don't have an account? <a asp-controller="Account" asp-action="Register" class="link">Create account</a>
             </div>
-            <div class="form-check">
-                <label><input type="checkbox" name="RememberMe" /> Remember me</label>
-                <a href="#" class="link">Forgot password?</a>
-            </div>
-            <button type="submit" class="btn btn-primary btn-full">Sign In →</button>
-        </form>
-        <div class="auth-footer">
-            Don't have an account? <a href="/Account/Register" class="link">Create account</a>
-        </div>
-        <div style="margin-top:24px;padding-top:20px;border-top:1px solid #e5e7eb;">
-            <p style="font-size:12px;color:#9ca3af;text-align:center;margin-bottom:10px;">Demo credentials:</p>
-            <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:8px;font-size:11.5px;">
-                <div style="background:#f9fafb;padding:8px;border-radius:8px;border:1px solid #e5e7eb;">
-                    <strong style="color:#1a2942;">Admin</strong><br>admin@rocla.com<br>admin123
+
+            <div style="margin-top:24px;padding-top:20px;border-top:1px solid #e5e7eb;">
+                <p style="font-size:12px;color:#9ca3af;text-align:center;margin-bottom:10px;">Demo credentials:</p>
+                <div style="display:grid;grid-template-columns:repeat(2,1fr);gap:8px;font-size:11.5px;">
+                    <div style="background:#f9fafb;padding:8px;border-radius:8px;border:1px solid #e5e7eb;">
+                        <strong style="color:#1a2942;">Admin</strong><br>
+                        admin@rocla.com<br>
+                        admin123
+                    </div>
+                    <div style="background:#f9fafb;padding:8px;border-radius:8px;border:1px solid #e5e7eb;">
+                        <strong style="color:#059669;">Supervisor</strong><br>
+                        supervisor@rocla.com<br>
+                        super123
+                    </div>
                 </div>
-                <div style="background:#f9fafb;padding:8px;border-radius:8px;border:1px solid #e5e7eb;">
-                    <strong style="color:#059669;">Supervisor</strong><br>supervisor@rocla.com<br>super123
-                </div>
-                
             </div>
         </div>
     </div>
 </div>
-</div>
+
 <script>
     function togglePwd(id, btn) {
         const i = document.getElementById(id);

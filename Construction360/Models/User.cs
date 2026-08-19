@@ -15,5 +15,7 @@ namespace Construction360.Models
         public string EmployeeId { get; set; } = "";
         public string Initials => string.Concat(FullName.Split(' ').Select(w => w.Length > 0 ? w[0].ToString() : ""));
         public bool IsActive { get; set; } = true;
+        public DateTime CreatedDate { get; internal set; }
+        public DateTime? LastLoginDate { get; internal set; }
     }
 }

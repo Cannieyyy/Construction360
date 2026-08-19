@@ -7,6 +7,7 @@ namespace Construction360.Services
 {
     public class DatabaseService
     {
+
         private readonly string _instanceName = "ConstructSystem";
         private readonly string _databaseName = "ConstructSystem";
         public string ConnectionString { get; }
@@ -344,6 +345,16 @@ namespace Construction360.Services
                 command.Parameters.AddRange(parameters);
             return command.ExecuteReader(CommandBehavior.CloseConnection);
         }
+
+        public object ExecuteScalar(string sql, SqlParameter[] parameters = null)
+        {
+            using var connection = new SqlConnection(ConnectionString);
+            connection.Open();
+            using var command = new SqlCommand(sql, connection);
+            if (parameters != null)
+                command.Parameters.AddRange(parameters);
+            return command.ExecuteScalar();
+        }
     }
 
     // Password Helper Class
@@ -371,5 +382,8 @@ namespace Construction360.Services
             var computedHash = HashPassword(password, salt);
             return computedHash == hash;
         }
+
+        
+        
     }
 }
