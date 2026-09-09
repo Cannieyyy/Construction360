@@ -70,7 +70,7 @@ namespace Construction360.Controllers
 
                 await HttpContext.SignInAsync("Cookies", principal, new AuthenticationProperties
                 {
-                    IsPersistent = model.RememberMe,
+                    IsPersistent = model.RememberMe, 
                     ExpiresUtc = model.RememberMe ? DateTimeOffset.UtcNow.AddDays(7) : DateTimeOffset.UtcNow.AddHours(8)
                 });
 
@@ -105,14 +105,14 @@ namespace Construction360.Controllers
             // Validate password
             if (model.Password != model.ConfirmPassword)
             {
-                ModelState.AddModelError("ConfirmPassword", "Passwords do not match.");
+                model.Error = "Passwords do not match.";
                 return View(model);
             }
 
             // Validate password strength
             if (model.Password.Length < 6)
             {
-                ModelState.AddModelError("Password", "Password must be at least 6 characters long.");
+                model.Error = "Password must be at least 6 characters long.";
                 return View(model);
             }
 
@@ -121,7 +121,7 @@ namespace Construction360.Controllers
                 // Check if user already exists
                 if (await _userRepository.UserExistsAsync(model.Email, model.Username))
                 {
-                    ModelState.AddModelError("", "An account with this email or username already exists.");
+                    model.Error = "An account with this email or username already exists.";
                     return View(model);
                 }
 
@@ -141,18 +141,16 @@ namespace Construction360.Controllers
 
                 if (!result)
                 {
-                    ModelState.AddModelError("", "Failed to create account. Please try again.");
+                    model.Error = "Failed to create account. Please try again.";
                     return View(model);
                 }
 
-                // Add success notification
                 TempData["SuccessMessage"] = "Account created successfully! Please login.";
-
                 return RedirectToAction("Login");
             }
             catch (Exception ex)
             {
-                ModelState.AddModelError("", "An error occurred during registration. Please try again.");
+                model.Error = "An error occurred during registration. Please try again.";
                 return View(model);
             }
         }
@@ -168,9 +166,15 @@ namespace Construction360.Controllers
             return View();
         }
 
+        // Redirection method
         private IActionResult RedirectToDashboard()
         {
             var role = User.FindFirst(ClaimTypes.Role)?.Value;
+
+            if (string.IsNullOrEmpty(role))
+            {
+                return RedirectToAction("Login", "Account");
+            }
 
             return role switch
             {
