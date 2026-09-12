@@ -4,10 +4,10 @@ namespace Construction360.Repositories
 {
     public interface IUserRepository
     {
-        Task<User> GetUserByIdAzync(int id);
-        Task<User> GetUserByEmailAzync(string email);
-        Task<User> GetUserByUsernameAzync(string username);
-        Task<IEnumerable<User>> GetAllUsersAzync();
+        Task<User> GetUserByIdAsync(int id);
+        Task<User> GetUserByEmailAsync(string email);
+        Task<User> GetUserByUsernameAsync(string username);
+        Task<IEnumerable<User>> GetAllUsersAsync();
         Task<User> AuthenticateAsync(string email, string password);
         Task<bool> CreateUserAsync(User user, string password);
         Task<bool> UpdateUserAsync(User user);
