@@ -9,9 +9,9 @@ namespace Construction360.Repositories
     {
         private readonly DatabaseService _databaseService;
 
-        public UserRepository()
+        public UserRepository(DatabaseService databaseService)
         {
-            _databaseService = new DatabaseService();
+            _databaseService = databaseService;
         }
 
         public async Task<User> GetUserByIdAsync(int id)

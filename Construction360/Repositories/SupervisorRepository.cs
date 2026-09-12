@@ -10,9 +10,9 @@ namespace Construction360.Repositories
     {
         private readonly DatabaseService _databaseService;
 
-        public SupervisorRepository()
+        public SupervisorRepository(DatabaseService databaseService)
         {
-            _databaseService = new DatabaseService();
+            _databaseService = databaseService;
         }
 
         public async Task<SupervisorDashboardViewModel> GetDashboardDataAsync(int supervisorId)

@@ -8,16 +8,18 @@ namespace Construction360.Services
     public class DatabaseService
     {
 
-        private readonly string _instanceName = "ConstructSystem";
-        private readonly string _databaseName = "ConstructSystem";
-        public string ConnectionString { get; }
+        private readonly string _connectionString;
 
-        public DatabaseService()
+        public DatabaseService(IConfiguration configuration)
         {
-            // Using consistent naming
-            ConnectionString = $@"Server=(localdb)\{_instanceName};Database={_databaseName};Trusted_Connection=true;TrustServerCertificate=true;";
+            _connectionString = configuration.GetConnectionString("DefaultConnection");
 
-            // Create and initialize database
+            if (string.IsNullOrEmpty(_connectionString))
+            {
+                throw new InvalidOperationException(
+                    "Connection string 'DefaultConnection' not found in configuration.");
+            }
+
             InitializeDatabase();
         }
 
@@ -25,8 +27,7 @@ namespace Construction360.Services
         {
             try
             {
-                CreateLocalDBInstance();
-                CreateDatabase();
+                // For Azure SQL, the database already exists - just create tables
                 CreateTables();
                 SeedInitialData();
             }
@@ -37,126 +38,10 @@ namespace Construction360.Services
             }
         }
 
-        private void CreateLocalDBInstance()
-        {
-            if (CheckInstanceExists()) return;
-
-            try
-            {
-                //The information about the instance
-                var startInfo = new ProcessStartInfo
-                {
-                    FileName = "cmd.exe",
-                    Arguments = $"/c sqllocaldb create \"{_instanceName}\"",
-                    UseShellExecute = false,
-                    RedirectStandardOutput = true,
-                    RedirectStandardError = true,
-                    CreateNoWindow = true
-                };
-
-                //Starting the creation of the local database
-                using var process = new Process { StartInfo = startInfo };
-                process.Start();
-                string output = process.StandardOutput.ReadToEnd();
-                string error = process.StandardError.ReadToEnd();
-                process.WaitForExit();
-
-                if (process.ExitCode == 0)
-                {
-                    Console.WriteLine($"LocalDB instance of '{_instanceName}' is created successfully");
-                    
-                    //Starting the instance after creating the instance
-                    StartLocalDBInstance();
-                }
-                else
-                {
-                    //When the instance has failed to be created
-                    Console.WriteLine($"Error creating instance: {error}");
-                    throw new Exception($"Failed to create LocalDB instance: {error}");
-                }
-            }
-
-            //When the server is not installed
-            catch (Win32Exception ex) when (ex.NativeErrorCode == 2)
-            {
-                throw new Exception("SQL Server LocalDB is not installed. Please install SQL Server Express LocalDB from Microsoft.");
-            }
-        }
-
-        //Starting the localDB instance
-        private void StartLocalDBInstance()
-        {
-            try
-            {
-                var startInfo = new ProcessStartInfo
-                {
-                    FileName = "cmd.exe",
-                    Arguments = $"/c sqllocaldb start \"{_instanceName}\"",
-                    UseShellExecute = false,
-                    RedirectStandardOutput = true,
-                    RedirectStandardError = true,
-                    CreateNoWindow = true
-                };
-
-                using var process = new Process { StartInfo = startInfo };
-                process.Start();
-                process.WaitForExit();
-            }
-            catch (Exception ex)
-            {
-                Console.WriteLine($"Warning: Could not start instance: {ex.Message}");
-            }
-        }
-
-        private bool CheckInstanceExists()
-        {
-            try
-            {
-                var startInfo = new ProcessStartInfo
-                {
-                    FileName = "cmd.exe",
-                    Arguments = $"/c sqllocaldb info \"{_instanceName}\"",
-                    UseShellExecute = false,
-                    RedirectStandardOutput = true,
-                    RedirectStandardError = true,
-                    CreateNoWindow = true
-                };
-
-                using var process = new Process { StartInfo = startInfo };
-                process.Start();
-                string output = process.StandardOutput.ReadToEnd();
-                process.WaitForExit();
-
-                return !string.IsNullOrWhiteSpace(output) &&
-                       !output.Contains("doesn't exist", StringComparison.OrdinalIgnoreCase);
-            }
-            catch
-            {
-                return false;
-            }
-        }
-
-        private void CreateDatabase()
-        {
-            var masterConnectionString = $@"Server=(localdb)\{_instanceName};Database=master;Trusted_Connection=true;TrustServerCertificate=true;";
-
-            using var connection = new SqlConnection(masterConnectionString);
-            connection.Open();
-
-            string createDbSql = @"
-                IF NOT EXISTS(SELECT * FROM sys.databases WHERE name = @dbName)
-                BEGIN
-                    CREATE DATABASE ConstructSystem;
-                END";
-
-            using var command = new SqlCommand(createDbSql, connection);
-            command.Parameters.AddWithValue("@dbName", _databaseName);
-            command.ExecuteNonQuery();
-        }
 
         private void CreateTables()
         {
-            using var connection = new SqlConnection(ConnectionString);
+            using var connection = new SqlConnection(_connectionString);
             connection.Open();
 
             // Users table (with hashed passwords)
@@ -180,6 +65,10 @@ namespace Construction360.Services
                     )
                 END";
 
+            //Executing
+            ExecuteNonQuery(connection, createUsersTable);
+            Console.WriteLine("Users table has been created");
+
             // Employees table
             string createEmployeesTable = @"
                 IF NOT EXISTS (SELECT * FROM sysobjects WHERE name = 'Employees' AND xtype = 'U')
@@ -198,6 +87,10 @@ namespace Construction360.Services
                     )
                 END";
 
+            //Executing
+            ExecuteNonQuery(connection, createEmployeesTable);
+            Console.WriteLine("Employee table has been created");
+
             // Attendance table
             string createAttendanceTable = @"
                 IF NOT EXISTS (SELECT * FROM sysobjects WHERE name = 'Attendance' AND xtype = 'U')
@@ -212,6 +105,10 @@ namespace Construction360.Services
                         FOREIGN KEY (Employee_ID) REFERENCES Employees(Employee_ID)
                     )
                 END";
+
+            //Executing
+            ExecuteNonQuery(connection, createAttendanceTable);
+            Console.WriteLine("Attendance table has been created");
 
             // Leave Requests table
             string createLeaveRequestsTable = @"
@@ -230,6 +127,10 @@ namespace Construction360.Services
                     )
                 END";
 
+            //Executing
+            ExecuteNonQuery(connection, createLeaveRequestsTable);
+            Console.WriteLine("Leave request table has been created");
+
             // Notifications table
             string createNotificationsTable = @"
                 IF NOT EXISTS (SELECT * FROM sysobjects WHERE name = 'Notifications' AND xtype = 'U')
@@ -246,17 +147,14 @@ namespace Construction360.Services
                     )
                 END";
 
-            // Execute all table creations
-            ExecuteNonQuery(connection, createUsersTable);
-            Console.WriteLine("Users table has been created");
-            ExecuteNonQuery(connection, createEmployeesTable);
-            Console.WriteLine("Employee table has been created");
-            ExecuteNonQuery(connection, createAttendanceTable);
-            Console.WriteLine("Attendance table has been created");
-            ExecuteNonQuery(connection, createLeaveRequestsTable);
-            Console.WriteLine("Leave request table has been created");
+            //Executing
             ExecuteNonQuery(connection, createNotificationsTable);
             Console.WriteLine("Notifications table has been created");
+            
+            
+            
+            
+            
         }
 
         private void ExecuteNonQuery(SqlConnection connection, string sql)
@@ -279,7 +177,7 @@ namespace Construction360.Services
                     INSERT INTO Users (FullName, Username, Email, PasswordHash, Salt, Role, EmployeeId, Department, Position, IsActive)
                     VALUES (@FullName, @Username, @Email, @PasswordHash, @Salt, @Role, @EmployeeId, @Department, @Position, 1)";
 
-                using var connection = new SqlConnection(ConnectionString);
+                using var connection = new SqlConnection(_connectionString);
                 connection.Open();
 
                 using var command = new SqlCommand(sql, connection);
@@ -318,7 +216,7 @@ namespace Construction360.Services
 
         private object ExecuteScalar(string sql)
         {
-            using var connection = new SqlConnection(ConnectionString);
+            using var connection = new SqlConnection(_connectionString);
             connection.Open();
             using var command = new SqlCommand(sql, connection);
             return command.ExecuteScalar();
@@ -327,7 +225,7 @@ namespace Construction360.Services
         // Helper method for executing SQL
         public int ExecuteNonQuery(string sql, SqlParameter[] parameters = null)
         {
-            using var connection = new SqlConnection(ConnectionString);
+            using var connection = new SqlConnection(_connectionString);
             connection.Open();
             using var command = new SqlCommand(sql, connection);
             if (parameters != null)
@@ -338,7 +236,7 @@ namespace Construction360.Services
         // Helper method for retrieving data
         public SqlDataReader ExecuteReader(string sql, SqlParameter[] parameters = null)
         {
-            var connection = new SqlConnection(ConnectionString);
+            var connection = new SqlConnection(_connectionString);
             connection.Open();
             using var command = new SqlCommand(sql, connection);
             if (parameters != null)
@@ -348,7 +246,7 @@ namespace Construction360.Services
 
         public object ExecuteScalar(string sql, SqlParameter[] parameters = null)
         {
-            using var connection = new SqlConnection(ConnectionString);
+            using var connection = new SqlConnection(_connectionString);
             connection.Open();
             using var command = new SqlCommand(sql, connection);
             if (parameters != null)

@@ -8,9 +8,9 @@ namespace Construction360.Controllers
     {
         private readonly DatabaseService _databaseService;
 
-        public HomeController()
+        public HomeController(DatabaseService databaseService)
         {
-            _databaseService = new DatabaseService();
+            _databaseService = databaseService;
         }
 
         public IActionResult Index()

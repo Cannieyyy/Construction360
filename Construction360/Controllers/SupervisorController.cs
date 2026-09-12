@@ -12,9 +12,9 @@ namespace Construction360.Controllers
     {
         private readonly ISupervisorRepository _supervisorRepository;
 
-        public SupervisorController()
+        public SupervisorController(ISupervisorRepository SuperRepo)
         {
-            _supervisorRepository = new SupervisorRepository();
+            _supervisorRepository = SuperRepo;
         }
 
         public async Task<IActionResult> Dashboard()

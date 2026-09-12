@@ -12,9 +12,9 @@ namespace Construction360.Controllers
     {
         private readonly IUserRepository _userRepository;
 
-        public AccountController()
+        public AccountController(IUserRepository userRepo)
         {
-            _userRepository = new UserRepository();
+            _userRepository = userRepo;
         }
 
         public IActionResult Login()
