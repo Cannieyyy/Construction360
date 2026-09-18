@@ -1,0 +1,339 @@
+﻿@model Construction360.ViewModels.LoginTrackerViewModel
+
+@{
+    ViewData["Title"] = "Login Tracker";
+    ViewData["PageTitle"] = "Login Tracker";
+    Layout = "_AppLayout";
+}
+
+<!-- PAGE HEADER -->
+<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:24px;">
+
+    <div>
+        <h2 style="margin:0;color:#1a2942;font-size:22px;">
+            Login Tracker
+        </h2>
+
+        <p style="margin:6px 0 0;color:#6b7280;font-size:13px;">
+            Monitor recent user login activity.
+        </p>
+    </div>
+
+</div>
+
+
+<!-- LOGIN SUMMARY -->
+<div class="stat-grid">
+
+    <div class="stat-card">
+
+        <div>
+            <div class="stat-label">Total Logins</div>
+            <div class="stat-value">@Model.TotalLogins</div>
+            <div class="stat-sub">Recorded login activity</div>
+        </div>
+
+        <div class="stat-icon">
+            <i class="fa-solid fa-right-to-bracket"></i>
+        </div>
+
+    </div>
+
+
+    <div class="stat-card">
+
+        <div>
+            <div class="stat-label">Today's Logins</div>
+            <div class="stat-value">@Model.TodayLogins</div>
+            <div class="stat-sub">Users logged in today</div>
+        </div>
+
+        <div class="stat-icon" style="background:#d1fae5;">
+            <i class="fa-solid fa-user-check"></i>
+        </div>
+
+    </div>
+
+
+    <div class="stat-card">
+
+        <div>
+            <div class="stat-label">Recent Activity</div>
+            <div class="stat-value">@Model.RecentLogins</div>
+            <div class="stat-sub">Recent login records</div>
+        </div>
+
+        <div class="stat-icon" style="background:#fef3c7;">
+            <i class="fa-solid fa-clock"></i>
+        </div>
+
+    </div>
+
+
+    <div class="stat-card">
+
+        <div>
+            <div class="stat-label">Locations</div>
+            <div class="stat-value">@Model.UniqueLocations</div>
+            <div class="stat-sub">Recorded locations</div>
+        </div>
+
+        <div class="stat-icon" style="background:#e0e7ff;">
+            <i class="fa-solid fa-location-dot"></i>
+        </div>
+
+    </div>
+
+</div>
+
+
+<!-- LOGIN TABLE -->
+<div class="table-card" style="margin-top:24px;">
+
+    <div class="table-toolbar">
+
+        <div>
+
+            <h3 style="margin:0;">
+                Login Activity
+            </h3>
+
+            <div style="
+                font-size:12px;
+                color:#6b7280;
+                margin-top:4px;
+            ">
+                Recent user sign-in records.
+            </div>
+
+        </div>
+
+
+        <!-- SEARCH -->
+        <form method="get"
+              action="/Admin/LoginTracker"
+              style="display:flex;gap:8px;">
+
+            <input type="text"
+                   name="search"
+                   value="@ViewBag.Search"
+                   class="form-control"
+                   placeholder="Search users..."
+                   style="width:190px;" />
+
+            <button type="submit"
+                    class="btn btn-outline btn-sm">
+
+                <i class="fa-solid fa-magnifying-glass"></i>
+
+            </button>
+
+        </form>
+
+    </div>
+
+
+    <div style="overflow-x:auto;">
+
+        <table style="width:100%;border-collapse:collapse;">
+
+            <thead>
+
+                <tr style="border-bottom:1px solid #e5e7eb;">
+
+                    <th style="
+                        padding:14px 20px;
+                        text-align:left;
+                        font-size:12px;
+                        color:#6b7280;
+                    ">
+                        Name
+                    </th>
+
+                    <th style="
+                        padding:14px 20px;
+                        text-align:left;
+                        font-size:12px;
+                        color:#6b7280;
+                    ">
+                        Surname
+                    </th>
+
+                    <th style="
+                        padding:14px 20px;
+                        text-align:left;
+                        font-size:12px;
+                        color:#6b7280;
+                    ">
+                        Login Time
+                    </th>
+
+                    <th style="
+                        padding:14px 20px;
+                        text-align:left;
+                        font-size:12px;
+                        color:#6b7280;
+                    ">
+                        Location
+                    </th>
+
+                </tr>
+
+            </thead>
+
+
+            <tbody>
+
+                @if (Model.Logins != null && Model.Logins.Any())
+                {
+                    foreach (var login in Model.Logins)
+                    {
+                        <tr style="border-bottom:1px solid #e5e7eb;">
+
+                            <!-- NAME -->
+                            <td style="padding:16px 20px;">
+
+                                <div style="
+                                            display:flex;
+                                            align-items:center;
+                                            gap:10px;
+                                        ">
+
+                                    <div class="avatar employee"
+                                         style="
+                                                    width:34px;
+                                                    height:34px;
+                                                    font-size:11px;
+                                                 ">
+
+                                        @login.Initials
+
+                                    </div>
+
+                                    <strong style="
+                                                font-size:13px;
+                                                color:#1a2942;
+                                            ">
+
+                                        @login.Name
+
+                                    </strong>
+
+                                </div>
+
+                            </td>
+
+
+                            <!-- SURNAME -->
+                            <td style="
+                                        padding:16px 20px;
+                                        font-size:13px;
+                                    ">
+
+                                @login.Surname
+
+                            </td>
+
+
+                            <!-- LOGIN TIME -->
+                            <td style="
+                                        padding:16px 20px;
+                                        font-size:13px;
+                                    ">
+
+                                <div style="
+                                            display:flex;
+                                            align-items:center;
+                                            gap:7px;
+                                        ">
+
+                                    <i class="fa-regular fa-clock"
+                                       style="color:#6b7280;">
+                                    </i>
+
+                                    @login.LoginTime.ToString("dd MMM yyyy, HH:mm")
+
+                                </div>
+
+                            </td>
+
+
+                            <!-- LOCATION -->
+                            <td style="
+                                        padding:16px 20px;
+                                        font-size:13px;
+                                    ">
+
+                                <div style="
+                                            display:flex;
+                                            align-items:center;
+                                            gap:7px;
+                                        ">
+
+                                    <i class="fa-solid fa-location-dot"
+                                       style="color:#c0392b;">
+                                    </i>
+
+                                    @login.Location
+
+                                </div>
+
+                            </td>
+
+                        </tr>
+                    }
+                }
+                else
+                {
+                    <tr>
+
+                        <td colspan="4"
+                            style="
+                                    padding:40px 20px;
+                                    text-align:center;
+                                ">
+
+                            <div style="
+                                    width:50px;
+                                    height:50px;
+                                    margin:0 auto 12px;
+                                    border-radius:50%;
+                                    background:#f0f4f8;
+                                    display:flex;
+                                    align-items:center;
+                                    justify-content:center;
+                                    color:#6b7280;
+                                ">
+
+                                <i class="fa-solid fa-right-to-bracket"></i>
+
+                            </div>
+
+                            <strong style="
+                                    display:block;
+                                    color:#1a2942;
+                                ">
+                                No login activity found
+                            </strong>
+
+                            <span style="
+                                    display:block;
+                                    margin-top:5px;
+                                    font-size:12px;
+                                    color:#6b7280;
+                                ">
+                                There are currently no login records to display.
+                            </span>
+
+                        </td>
+
+                    </tr>
+                }
+
+            </tbody>
+
+        </table>
+
+    </div>
+
+</div>

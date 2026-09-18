@@ -67,9 +67,106 @@ namespace Construction360.Models
         new ProductivityRecord { Week = "Week 4", Target = 90, Actual = 94 },
     };
 
-        public static User? Authenticate(string email, string password)
-            => Users.FirstOrDefault(u => u.Email == email && u.PasswordHash == password);
+        public static List<LoginRecord> LoginRecords { get; } = new()
+{
+    new LoginRecord
+    {
+        Id = 1,
+        UserId = 1,
+        Name = "Keoagile",
+        Surname = "Mafora",
+        Initials = "KM",
+        LoginTime = DateTime.Today.AddHours(7).AddMinutes(42),
+        Location = "Main Office"
+    },
+    new LoginRecord
+    {
+        Id = 2,
+        UserId = 2,
+        Name = "Mulweli",
+        Surname = "Mbedzi",
+        Initials = "MM",
+        LoginTime = DateTime.Today.AddHours(7).AddMinutes(55),
+        Location = "Main Office"
+    },
+    new LoginRecord
+    {
+        Id = 3,
+        UserId = 1,
+        Name = "Keoagile",
+        Surname = "Mafora",
+        Initials = "KM",
+        LoginTime = DateTime.Today.AddDays(-1).AddHours(8).AddMinutes(3),
+        Location = "Main Office"
+    },
+    new LoginRecord
+    {
+        Id = 4,
+        UserId = 2,
+        Name = "Mulweli",
+        Surname = "Mbedzi",
+        Initials = "MM",
+        LoginTime = DateTime.Today.AddDays(-1).AddHours(7).AddMinutes(51),
+        Location = "Main Office"
+    }
+};
 
+        public static User? Authenticate(string email, string password)
+        {
+            var user = Users.FirstOrDefault(
+                u => u.Email == email && u.PasswordHash == password);
+
+            if (user != null)
+            {
+                var nameParts = user.FullName
+                    .Split(' ', StringSplitOptions.RemoveEmptyEntries);
+
+                var firstName = nameParts.FirstOrDefault() ?? "";
+                var surname = nameParts.Length > 1
+                    ? string.Join(" ", nameParts.Skip(1))
+                    : "";
+
+                LoginRecords.Insert(0, new LoginRecord
+                {
+                    Id = LoginRecords.Count + 1,
+                    UserId = user.Id,
+                    Name = firstName,
+                    Surname = surname,
+                    Initials = string.Concat(
+                        nameParts.Select(x => x.Length > 0 ? x[0].ToString() : "")
+                    ),
+                    LoginTime = DateTime.Now,
+                    Location = "Main Office"
+                });
+            }
+
+            return user;
+        }
+
+        public static List<Announcement> Announcements { get; } = new()
+{
+    new Announcement
+    {
+        Id = 1,
+        Title = "Welcome to Construct360",
+        Message = "Welcome to the Construct360 employee management system. Please ensure your profile and attendance information are up to date.",
+        Audience = "Everyone",
+        SentBy = "Keoagile Mafora",
+        SentDate = new DateTime(2026, 5, 12, 9, 0, 0),
+        Status = "Sent"
+    },
+
+    new Announcement
+    {
+        Id = 2,
+        Title = "System Maintenance",
+        Message = "The system will undergo scheduled maintenance this weekend. Please save your work before the maintenance window begins.",
+        Audience = "Employees",
+        SentBy = "Keoagile Mafora",
+        SentDate = new DateTime(2026, 5, 10, 14, 30, 0),
+        Status = "Sent"
+    }
+};
         public static void ApproveLeave(int id)
         {
             var l = LeaveRequests.FirstOrDefault(x => x.Id == id);

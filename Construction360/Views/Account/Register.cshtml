@@ -55,36 +55,87 @@
 
             <div class="form-group">
                 <label class="form-label">Select Your Role</label>
+
                 <input type="hidden" name="Role" id="roleInput" value="Employee" />
-                <div class="role-option" data-role="Employee" onclick="selectRole(this, 'Employee')">
+
+                <div class="role-option selected"
+                     data-role="Employee"
+                     onclick="selectRole(this, 'Employee')">
                     <div class="role-option-left">
-                        <div class="role-icon-wrap"><i class="fa-solid fa-user"></i></div>
+                        <div class="role-icon-wrap">
+                            <i class="fa-solid fa-user"></i>
+                        </div>
                         <div>
                             <div class="role-name">Employee</div>
-                            <div class="role-desc">Access personal attendance, leave requests, and QR code</div>
+                            <div class="role-desc">
+                                Access personal attendance, leave requests, and QR code
+                            </div>
                         </div>
                     </div>
                     <div class="radio-dot filled" id="dot-Employee"></div>
                 </div>
-                <div class="role-option" data-role="Supervisor" onclick="selectRole(this, 'Supervisor')">
+
+                <div class="role-option"
+                     data-role="Supervisor"
+                     onclick="selectRole(this, 'Supervisor')">
                     <div class="role-option-left">
-                        <div class="role-icon-wrap" style="background:#059669;"><i class="fa-solid fa-user-tie"></i></div>
+                        <div class="role-icon-wrap" style="background:#059669;">
+                            <i class="fa-solid fa-user-tie"></i>
+                        </div>
                         <div>
                             <div class="role-name">Supervisor</div>
-                            <div class="role-desc">Manage team attendance, approve leaves, and scan QR codes</div>
+                            <div class="role-desc">
+                                Manage team attendance, approve leaves, and scan QR codes
+                            </div>
                         </div>
                     </div>
                     <div class="radio-dot" id="dot-Supervisor"></div>
                 </div>
-                <div class="role-option" data-role="Admin" onclick="selectRole(this, 'Admin')">
+
+                <div class="role-option"
+                     data-role="Admin"
+                     onclick="selectRole(this, 'Admin')">
                     <div class="role-option-left">
-                        <div class="role-icon-wrap" style="background:#7c3aed;"><i class="fa-solid fa-shield-halved"></i></div>
+                        <div class="role-icon-wrap" style="background:#7c3aed;">
+                            <i class="fa-solid fa-shield-halved"></i>
+                        </div>
                         <div>
                             <div class="role-name">Admin</div>
-                            <div class="role-desc">Full access to all system features and settings</div>
+                            <div class="role-desc">
+                                Full access to all system features and settings
+                            </div>
                         </div>
                     </div>
                     <div class="radio-dot" id="dot-Admin"></div>
+                </div>
+            </div>
+
+            <!-- Department -->
+            <div class="form-group" id="departmentGroup">
+                <label class="form-label" for="department">
+                    Department
+                </label>
+
+                <div class="input-wrap">
+                    <span class="input-icon">
+                        <i class="fa-solid fa-building"></i>
+                    </span>
+
+                    <select name="Department"
+                            id="department"
+                            class="form-control department-select"
+                            required>
+                        <option value="">Select your department</option>
+                        <option value="Construction">Construction</option>
+                        <option value="Engineering">Engineering</option>
+                        <option value="Finance">Finance</option>
+                        <option value="Human Resources">Human Resources</option>
+                        <option value="Information Technology">Information Technology</option>
+                        <option value="Procurement">Procurement</option>
+                        <option value="Projects">Projects</option>
+                        <option value="Safety">Safety</option>
+                        <option value="Operations">Operations</option>
+                    </select>
                 </div>
             </div>
 
@@ -94,21 +145,72 @@
     </div>
 </div>
 <script>
-function togglePwd(id, btn) {
-    const i = document.getElementById(id);
-    i.type = i.type === 'password' ? 'text' : 'password';
-    btn.textContent = i.type === 'password' ? '👁' : '🙈';
-}
-function selectRole(el, role) {
-    document.querySelectorAll('.role-option').forEach(o => {
-        o.classList.remove('selected');
+    function togglePwd(id, btn) {
+        const input = document.getElementById(id);
+
+        input.type = input.type === 'password'
+            ? 'text'
+            : 'password';
+
+        btn.innerHTML = input.type === 'password'
+            ? '<i class="fa-regular fa-eye"></i>'
+            : '<i class="fa-regular fa-eye-slash"></i>';
+    }
+
+    function selectRole(el, role) {
+        // Remove selected state from all roles
+        document.querySelectorAll('.role-option').forEach(option => {
+            option.classList.remove('selected');
+        });
+
+        // Remove filled state from all radio buttons
+        ['Employee', 'Supervisor', 'Admin'].forEach(r => {
+            const dot = document.getElementById('dot-' + r);
+
+            if (dot) {
+                dot.classList.remove('filled');
+            }
+        });
+
+        // Select current role
+        el.classList.add('selected');
+
+        const selectedDot = document.getElementById('dot-' + role);
+
+        if (selectedDot) {
+            selectedDot.classList.add('filled');
+        }
+
+        // Update hidden role field
+        document.getElementById('roleInput').value = role;
+
+        // Show/hide department
+        updateDepartmentVisibility(role);
+    }
+
+    function updateDepartmentVisibility(role) {
+        const departmentGroup = document.getElementById('departmentGroup');
+        const department = document.getElementById('department');
+
+        if (role === 'Admin') {
+            // Admin covers all departments
+            departmentGroup.style.display = 'none';
+
+            // Prevent hidden department field from being required
+            department.required = false;
+            department.value = '';
+        } else {
+            // Employee and Supervisor must belong to a department
+            departmentGroup.style.display = 'block';
+            department.required = true;
+        }
+    }
+
+    // Set correct state when the page loads
+    document.addEventListener('DOMContentLoaded', function () {
+        const currentRole =
+            document.getElementById('roleInput').value || 'Employee';
+
+        updateDepartmentVisibility(currentRole);
     });
-    ['Employee','Supervisor','Admin'].forEach(r => {
-        const d = document.getElementById('dot-'+r);
-        if (d) { d.classList.remove('filled'); }
-    });
-    el.classList.add('selected');
-    document.getElementById('dot-'+role)?.classList.add('filled');
-    document.getElementById('roleInput').value = role;
-}
 </script>

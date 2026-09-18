@@ -31,7 +31,51 @@ namespace Construction360.Controllers
             };
             return View(vm);
         }
+        public IActionResult LoginTracker(string? search)
+        {
+            var logins = MockData.LoginRecords.AsQueryable();
 
+            if (!string.IsNullOrWhiteSpace(search))
+            {
+                logins = logins.Where(l =>
+                    l.Name.Contains(search, StringComparison.OrdinalIgnoreCase) ||
+                    l.Surname.Contains(search, StringComparison.OrdinalIgnoreCase) ||
+                    $"{l.Name} {l.Surname}".Contains(search, StringComparison.OrdinalIgnoreCase));
+            }
+
+            var loginList = logins
+                .OrderByDescending(l => l.LoginTime)
+                .ToList();
+
+            var vm = new LoginTrackerViewModel
+            {
+                TotalLogins = MockData.LoginRecords.Count,
+
+                TodayLogins = MockData.LoginRecords.Count(l =>
+                    l.LoginTime.Date == DateTime.Today),
+
+                RecentLogins = MockData.LoginRecords.Count(l =>
+                    l.LoginTime >= DateTime.Now.AddDays(-7)),
+
+                UniqueLocations = MockData.LoginRecords
+                    .Select(l => l.Location)
+                    .Distinct()
+                    .Count(),
+
+                Logins = loginList.Select(l => new LoginTrackerItemViewModel
+                {
+                    Name = l.Name,
+                    Surname = l.Surname,
+                    Initials = l.Initials,
+                    LoginTime = l.LoginTime,
+                    Location = l.Location
+                }).ToList()
+            };
+
+            ViewBag.Search = search;
+
+            return View(vm);
+        }
         public IActionResult Employees(string? search, string? department, string? status)
         {
             var employees = MockData.Employees.AsQueryable();
@@ -84,10 +128,56 @@ namespace Construction360.Controllers
             return RedirectToAction("LeaveManagement");
         }
 
-        public IActionResult Notifications()
+        public IActionResult Notifications(string? filter)
         {
+            var notifications = MockData.Notifications.AsQueryable();
+
+            if (!string.IsNullOrWhiteSpace(filter) && filter != "All")
+            {
+                if (filter == "Unread")
+                {
+                    notifications = notifications.Where(n => !n.IsRead);
+                }
+                else
+                {
+                    notifications = notifications.Where(n => n.Type == filter);
+                }
+            }
+
             ViewBag.UnreadCount = MockData.Notifications.Count(n => !n.IsRead);
-            return View(MockData.Notifications);
+            ViewBag.Filter = filter ?? "All";
+
+            return View(notifications.ToList());
+        }
+
+        [HttpPost]
+        public IActionResult MarkNotificationRead(int id)
+        {
+            var notification = MockData.Notifications
+                .FirstOrDefault(n => n.Id == id);
+
+            if (notification != null)
+            {
+                notification.IsRead = true;
+            }
+
+            return RedirectToAction("Notifications");
+        }
+
+
+
+        [HttpPost]
+        public IActionResult DeleteNotification(int id)
+        {
+            var notification = MockData.Notifications
+                .FirstOrDefault(n => n.Id == id);
+
+            if (notification != null)
+            {
+                MockData.Notifications.Remove(notification);
+            }
+
+            return RedirectToAction("Notifications");
         }
 
         [HttpPost]
@@ -95,6 +185,44 @@ namespace Construction360.Controllers
         {
             MockData.Notifications.ForEach(n => n.IsRead = true);
             return RedirectToAction("Notifications");
+        }
+
+
+        public IActionResult Announcements()
+        {
+            var announcements = MockData.Announcements
+                .OrderByDescending(a => a.SentDate)
+                .ToList();
+
+            return View(announcements);
+        }
+
+        [HttpPost]
+        public IActionResult SendAnnouncement(
+            string title,
+            string message,
+            string audience)
+        {
+            if (string.IsNullOrWhiteSpace(title) ||
+                string.IsNullOrWhiteSpace(message))
+            {
+                return RedirectToAction("Announcements");
+            }
+
+            var adminName = User.Identity?.Name ?? "Administrator";
+
+            MockData.Announcements.Insert(0, new Announcement
+            {
+                Id = MockData.Announcements.Count + 1,
+                Title = title.Trim(),
+                Message = message.Trim(),
+                Audience = audience,
+                SentBy = adminName,
+                SentDate = DateTime.Now,
+                Status = "Sent"
+            });
+
+            return RedirectToAction("Announcements");
         }
     }
 }

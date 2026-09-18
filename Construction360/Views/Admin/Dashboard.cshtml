@@ -1,104 +1,270 @@
 ﻿@model Construction360.ViewModels.AdminDashboardViewModel
+
 @{
     ViewData["Title"] = "Dashboard";
     ViewData["PageTitle"] = "Dashboard Overview";
     Layout = "_AppLayout";
 }
 
+<!-- SYSTEM OVERVIEW -->
 <div class="stat-grid">
+
     <div class="stat-card">
         <div>
-            <div class="stat-label">Total Employees</div>
-            <div class="stat-value">@Model.TotalEmployees</div>
+            <div class="stat-label">Total Accounts</div>
+            <div class="stat-value">@Model.TotalAccounts</div>
+            <div class="stat-sub">All registered users</div>
         </div>
-        <div class="stat-icon">  <i class="fa-solid fa-users"></i></div>
+        <div class="stat-icon">
+            <i class="fa-solid fa-users"></i>
+        </div>
     </div>
+
     <div class="stat-card">
         <div>
-            <div class="stat-label">Present Today</div>
-            <div class="stat-value">@Model.PresentToday</div>
+            <div class="stat-label">Active Accounts</div>
+            <div class="stat-value">@Model.ActiveAccounts</div>
+            <div class="stat-sub">Currently active</div>
         </div>
-        <div class="stat-icon" style="background:#d1fae5;">  <i class="fa-solid fa-user-check"></i></div>
+        <div class="stat-icon" style="background:#d1fae5;">
+            <i class="fa-solid fa-user-check"></i>
+        </div>
     </div>
+
     <div class="stat-card">
         <div>
-            <div class="stat-label">Absent Today</div>
-            <div class="stat-value">@Model.AbsentToday</div>
+            <div class="stat-label">Pending Accounts</div>
+            <div class="stat-value">@Model.PendingAccounts</div>
+            <div class="stat-sub">Awaiting approval</div>
         </div>
-        <div class="stat-icon" style="background:#fee2e2;"><i class="fa-solid fa-user-xmark"></i></div>
+        <div class="stat-icon" style="background:#fef3c7;">
+            <i class="fa-solid fa-user-clock"></i>
+        </div>
     </div>
+
     <div class="stat-card">
         <div>
-            <div class="stat-label">Pending Leaves</div>
-            <div class="stat-value">@Model.PendingLeaves</div>
+            <div class="stat-label">Inactive Accounts</div>
+            <div class="stat-value">@Model.InactiveAccounts</div>
+            <div class="stat-sub">Currently inactive</div>
         </div>
-        <div class="stat-icon" style="background:#fef3c7;"><i class="fa-solid fa-file-circle-exclamation"></i></div>
+        <div class="stat-icon" style="background:#fee2e2;">
+            <i class="fa-solid fa-user-slash"></i>
+        </div>
     </div>
+
 </div>
 
-<div class="stat-grid">
-    <div class="stat-card">
-        <div>
-            <div class="stat-label">On Leave</div>
-            <div class="stat-value">@Model.OnLeave</div>
-        </div>
-        <div class="stat-icon"><i class="fa-solid fa-clock"></i></div>
-    </div>
-    <div class="stat-card">
-        <div>
-            <div class="stat-label">Late Arrivals</div>
-            <div class="stat-value">@Model.LateArrivals</div>
-        </div>
-        <div class="stat-icon" style="background:#fee2e2;"> <i class="fa-solid fa-triangle-exclamation"></i></div>
-    </div>
-    <div class="stat-card" style="grid-column: span 2;">
-        <div>
-            <div class="stat-label">Avg. Productivity</div>
-            <div class="stat-value">@Model.AvgProductivity%</div>
-        </div>
-        <div class="stat-icon" style="background:#d1fae5;"><i class="fa-solid fa-chart-line"></i></div>
-    </div>
-</div>
 
+<!-- BUILDING OCCUPANCY -->
 <div class="charts-row">
+
     <div class="chart-card">
-        <h3>Weekly Attendance</h3>
-        <canvas id="weeklyChart" width="420" height="220"></canvas>
-        <div style="display:flex;gap:16px;margin-top:12px;font-size:12px;">
-            <span style="display:flex;align-items:center;gap:6px;"><span style="width:12px;height:12px;background:#1a2942;border-radius:3px;display:inline-block;"></span>Present</span>
-            <span style="display:flex;align-items:center;gap:6px;"><span style="width:12px;height:12px;background:#c0392b;border-radius:3px;display:inline-block;"></span>Absent</span>
-            <span style="display:flex;align-items:center;gap:6px;"><span style="width:12px;height:12px;background:#d4a847;border-radius:3px;display:inline-block;"></span>Late</span>
-        </div>
-    </div>
-    <div class="chart-card">
-        <h3>Department Distribution</h3>
-        <div style="display:flex;align-items:center;gap:24px;">
-            <canvas id="donutChart" width="200" height="200"></canvas>
-            <div style="font-size:12.5px;flex:1;">
-                @foreach (var dept in Model.DepartmentDistribution)
-                {
-                    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px;">
-                        <span>@dept.Key</span>
-                        <span style="font-weight:700;">@dept.Value%</span>
-                    </div>
-                }
+
+        <h3>Building Occupancy</h3>
+
+        <div style="display:flex;align-items:center;gap:24px;margin-top:20px;">
+
+            <div style="
+                width:120px;
+                height:120px;
+                border-radius:50%;
+                background:#f0f4f8;
+                display:flex;
+                flex-direction:column;
+                align-items:center;
+                justify-content:center;
+                flex-shrink:0;
+            ">
+                <div style="font-size:28px;font-weight:800;color:#1a2942;">
+                    @Model.BuildingOccupancy
+                </div>
+
+                <div style="font-size:11px;color:#6b7280;">
+                    Inside
+                </div>
             </div>
+
+            <div style="flex:1;">
+
+                <div style="margin-bottom:16px;">
+                    <div style="
+                        display:flex;
+                        justify-content:space-between;
+                        margin-bottom:7px;
+                        font-size:13px;
+                    ">
+                        <span>Employees Inside</span>
+                        <strong>@Model.EmployeeCountInside</strong>
+                    </div>
+
+                    <div style="
+                        height:8px;
+                        background:#e5e7eb;
+                        border-radius:8px;
+                        overflow:hidden;
+                    ">
+                        <div style="
+                            height:100%;
+                            width:@(Model.BuildingOccupancy > 0
+                                                             ? Math.Min(100, (Model.EmployeeCountInside * 100.0) / Model.BuildingOccupancy)
+                                                             : 0)%;
+                            background:#1a2942;
+                            border-radius:8px;
+                        "></div>
+                    </div>
+                </div>
+
+
+                <div>
+                    <div style="
+                        display:flex;
+                        justify-content:space-between;
+                        margin-bottom:7px;
+                        font-size:13px;
+                    ">
+                        <span>Supervisors Inside</span>
+                        <strong>@Model.SupervisorCountInside</strong>
+                    </div>
+
+                    <div style="
+                        height:8px;
+                        background:#e5e7eb;
+                        border-radius:8px;
+                        overflow:hidden;
+                    ">
+                        <div style="
+                            height:100%;
+                            width:@(Model.BuildingOccupancy > 0
+                                                             ? Math.Min(100, (Model.SupervisorCountInside * 100.0) / Model.BuildingOccupancy)
+                                                             : 0)%;
+                            background:#c0392b;
+                            border-radius:8px;
+                        "></div>
+                    </div>
+                </div>
+
+            </div>
+
         </div>
+
+        <div style="
+            margin-top:20px;
+            padding-top:16px;
+            border-top:1px solid #e5e7eb;
+            display:flex;
+            justify-content:space-between;
+            align-items:center;
+        ">
+            <span style="font-size:13px;color:#6b7280;">
+                Current people inside building
+            </span>
+
+            <strong style="font-size:20px;color:#1a2942;">
+                @Model.BuildingOccupancy
+            </strong>
+        </div>
+
     </div>
+
+
+    <!-- SYSTEM STATUS -->
+    <div class="chart-card">
+
+        <h3>System Status</h3>
+
+        <div style="
+            display:flex;
+            align-items:center;
+            gap:14px;
+            margin-top:24px;
+            padding:18px;
+            background:#f0fdf4;
+            border:1px solid #bbf7d0;
+            border-radius:8px;
+        ">
+
+            <div style="
+                width:42px;
+                height:42px;
+                border-radius:50%;
+                background:#d1fae5;
+                display:flex;
+                align-items:center;
+                justify-content:center;
+                color:#059669;
+            ">
+                <i class="fa-solid fa-check"></i>
+            </div>
+
+            <div>
+                <div style="
+                    font-size:14px;
+                    font-weight:700;
+                    color:#1a2942;
+                ">
+                    @Model.SystemStatus
+                </div>
+
+                <div style="
+                    font-size:12px;
+                    color:#6b7280;
+                    margin-top:3px;
+                ">
+                    All core services are running
+                </div>
+            </div>
+
+        </div>
+
+        <div style="
+            margin-top:18px;
+            display:grid;
+            gap:10px;
+        ">
+
+            <div style="
+                display:flex;
+                justify-content:space-between;
+                align-items:center;
+                padding:10px 0;
+                border-bottom:1px solid #e5e7eb;
+                font-size:13px;
+            ">
+                <span>Account System</span>
+                <span class="badge badge-success">Operational</span>
+            </div>
+
+            <div style="
+                display:flex;
+                justify-content:space-between;
+                align-items:center;
+                padding:10px 0;
+                border-bottom:1px solid #e5e7eb;
+                font-size:13px;
+            ">
+                <span>QR Attendance System</span>
+                <span class="badge badge-success">Operational</span>
+            </div>
+
+            <div style="
+                display:flex;
+                justify-content:space-between;
+                align-items:center;
+                padding:10px 0;
+                font-size:13px;
+            ">
+                <span>Notification System</span>
+                <span class="badge badge-success">Operational</span>
+            </div>
+
+        </div>
+
+    </div>
+
 </div>
 
-@section Scripts {
-    <script>
-        const weeklyData = @Html.Raw(System.Text.Json.JsonSerializer.Serialize(Model.WeeklyAttendance.Select(w => new { label = w.Day, values = new[] { w.Present, w.Absent, w.Late } })));
-        drawBarChart('weeklyChart', weeklyData, ['#1a2942','#c0392b','#d4a847']);
 
-        const donutData = [
-            { value: 44, color: '#1a2942' },
-            { value: 15, color: '#c0392b' },
-            { value: 22, color: '#6b7280' },
-            { value: 9, color: '#d4a847' },
-            { value: 10, color: '#059669' },
-        ];
-        drawDonut('donutChart', donutData);
-    </script>
-}
+
+
+
