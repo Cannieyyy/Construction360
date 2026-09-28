@@ -9,9 +9,8 @@ using System.Security.Claims;
 
 namespace Construction360.Controllers.Api
 {
-    /// <summary>
-    /// Authentication API endpoints
-    /// </summary>
+   
+    // Authentication API endpoints
     [ApiController]
     [Route("api/[controller]")]
     [Produces("application/json")]
@@ -24,9 +23,8 @@ namespace Construction360.Controllers.Api
             _userRepository = userRepository;
         }
 
-        /// <summary>
-        /// Login with email and password
-        /// </summary>
+        
+        // Login with email and password
         /// <param name="model">Login credentials</param>
         /// <returns>User information and authentication cookie</returns>
         [HttpPost("login")]
@@ -70,9 +68,8 @@ namespace Construction360.Controllers.Api
             });
         }
 
-        /// <summary>
+        
         /// Register a new user
-        /// </summary>
         /// <param name="model">Registration details</param>
         /// <returns>Created user info</returns>
         [HttpPost("register")]
@@ -111,9 +108,7 @@ namespace Construction360.Controllers.Api
             });
         }
 
-        /// <summary>
         /// Logout current user
-        /// </summary>
         [HttpPost("logout")]
         [Authorize]
         [ProducesResponseType(StatusCodes.Status200OK)]
@@ -123,9 +118,7 @@ namespace Construction360.Controllers.Api
             return Ok(new { message = "Logged out successfully" });
         }
 
-        /// <summary>
         /// Get current logged-in user info
-        /// </summary>
         [HttpGet("me")]
         [Authorize]
         [ProducesResponseType(typeof(object), StatusCodes.Status200OK)]
