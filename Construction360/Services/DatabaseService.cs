@@ -150,11 +150,28 @@ namespace Construction360.Services
             //Executing
             ExecuteNonQuery(connection, createNotificationsTable);
             Console.WriteLine("Notifications table has been created");
-            
-            
-            
-            
-            
+
+            // LoginRecords table
+            string createLoginRecordsTable = @"
+    IF NOT EXISTS (SELECT * FROM sysobjects WHERE name = 'LoginRecords' AND xtype = 'U')
+    BEGIN
+        CREATE TABLE LoginRecords (
+            LoginRecord_ID INT PRIMARY KEY IDENTITY(1,1),
+            User_ID INT NOT NULL,
+            Name NVARCHAR(50) NOT NULL,
+            Surname NVARCHAR(50),
+            Initials NVARCHAR(10),
+            LoginTime DATETIME DEFAULT GETDATE(),
+            Location NVARCHAR(100),
+            FOREIGN KEY (User_ID) REFERENCES Users(User_ID)
+        )
+    END";
+
+            ExecuteNonQuery(connection, createLoginRecordsTable);
+            Console.WriteLine("LoginRecords table has been created");
+
+
+
         }
 
         private void ExecuteNonQuery(SqlConnection connection, string sql)

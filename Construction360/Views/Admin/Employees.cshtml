@@ -1,515 +1,213 @@
-﻿@model List<Construction360.Models.Employee>
+﻿@using Construction360.Enums
+@model Construction360.ViewModels.UserManagementViewModel
 
 @{
     ViewData["Title"] = "User Management";
     ViewData["PageTitle"] = "User Management";
     Layout = "_AppLayout";
-
-    var totalAccounts = Model.Count;
-    var pendingAccounts = Model.Count(e => e.Status == "Pending");
-    var activeAccounts = Model.Count(e => e.Status == "Active");
-    var inactiveAccounts = Model.Count(e => e.Status == "Inactive");
 }
 
 <!-- PAGE HEADER -->
 <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:24px;">
-
     <div>
-        <h2 style="margin:0;color:#1a2942;font-size:22px;">
-            User Management
-        </h2>
-
+        <h2 style="margin:0;color:#1a2942;font-size:22px;">User Management</h2>
         <p style="margin:6px 0 0;color:#6b7280;font-size:13px;">
             Manage registered employee accounts and access.
         </p>
     </div>
-
 </div>
 
+<!-- SUCCESS/ERROR MESSAGES -->
+@if (TempData["SuccessMessage"] != null)
+{
+    <div style="background:#d1fae5;color:#065f46;padding:12px 20px;border-radius:8px;border:1px solid #a7f3d0;margin-bottom:20px;display:flex;align-items:center;gap:10px;">
+        <i class="fa-solid fa-circle-check"></i>
+        @TempData["SuccessMessage"]
+    </div>
+}
+
+@if (TempData["ErrorMessage"] != null)
+{
+    <div style="background:#fee2e2;color:#991b1b;padding:12px 20px;border-radius:8px;border:1px solid #fecaca;margin-bottom:20px;display:flex;align-items:center;gap:10px;">
+        <i class="fa-solid fa-circle-exclamation"></i>
+        @TempData["ErrorMessage"]
+    </div>
+}
 
 <!-- ACCOUNT SUMMARY -->
 <div class="stat-grid">
-
     <div class="stat-card">
-
         <div>
             <div class="stat-label">Total Accounts</div>
-            <div class="stat-value">@totalAccounts</div>
+            <div class="stat-value">@Model.TotalAccounts</div>
             <div class="stat-sub">Registered users</div>
         </div>
-
-        <div class="stat-icon">
-            <i class="fa-solid fa-users"></i>
-        </div>
-
+        <div class="stat-icon"><i class="fa-solid fa-users"></i></div>
     </div>
 
-
     <div class="stat-card">
-
         <div>
             <div class="stat-label">Pending</div>
-            <div class="stat-value">@pendingAccounts</div>
+            <div class="stat-value">@Model.PendingAccounts</div>
             <div class="stat-sub">Awaiting approval</div>
         </div>
-
-        <div class="stat-icon" style="background:#fef3c7;">
-            <i class="fa-solid fa-user-clock"></i>
-        </div>
-
+        <div class="stat-icon" style="background:#fef3c7;"><i class="fa-solid fa-user-clock"></i></div>
     </div>
 
-
     <div class="stat-card">
-
         <div>
             <div class="stat-label">Active</div>
-            <div class="stat-value">@activeAccounts</div>
+            <div class="stat-value">@Model.ActiveAccounts</div>
             <div class="stat-sub">Access enabled</div>
         </div>
-
-        <div class="stat-icon" style="background:#d1fae5;">
-            <i class="fa-solid fa-user-check"></i>
-        </div>
-
+        <div class="stat-icon" style="background:#d1fae5;"><i class="fa-solid fa-user-check"></i></div>
     </div>
-
 
     <div class="stat-card">
-
         <div>
             <div class="stat-label">Inactive</div>
-            <div class="stat-value">@inactiveAccounts</div>
+            <div class="stat-value">@Model.InactiveAccounts</div>
             <div class="stat-sub">Access disabled</div>
         </div>
-
-        <div class="stat-icon" style="background:#fee2e2;">
-            <i class="fa-solid fa-user-slash"></i>
-        </div>
-
+        <div class="stat-icon" style="background:#fee2e2;"><i class="fa-solid fa-user-slash"></i></div>
     </div>
-
 </div>
-
 
 <!-- USER TABLE -->
 <div class="table-card" style="margin-top:24px;">
-
-    <!-- TOOLBAR -->
     <div class="table-toolbar">
-
         <div>
-
-            <h3 style="margin:0;">
-                User Accounts
-            </h3>
-
-            <div style="
-                font-size:12px;
-                color:#6b7280;
-                margin-top:4px;
-            ">
+            <h3 style="margin:0;">User Accounts</h3>
+            <div style="font-size:12px;color:#6b7280;margin-top:4px;">
                 Review account status and manage system access.
             </div>
-
         </div>
-
 
         <div style="display:flex;gap:10px;align-items:center;">
-
-            <!-- SEARCH -->
-            <form method="get"
-                  action="/Admin/Employees"
-                  style="display:flex;gap:8px;">
-
-                <input type="text"
-                       name="search"
-                       value="@ViewBag.Search"
-                       class="form-control"
-                       placeholder="Search users..."
-                       style="width:190px;" />
-
-                <button type="submit"
-                        class="btn btn-outline btn-sm">
-
+            <form method="get" action="/Admin/Employees" style="display:flex;gap:8px;">
+                <input type="text" name="search" value="@Model.Search" class="form-control"
+                       placeholder="Search users..." style="width:190px;" />
+                <button type="submit" class="btn btn-outline btn-sm">
                     <i class="fa-solid fa-magnifying-glass"></i>
-
                 </button>
-
             </form>
 
-
-            <!-- STATUS FILTER -->
-            <select id="statusFilter"
-                    class="form-control"
-                    style="width:150px;"
-                    onchange="filterUsers()">
-
-                <option value="All">All Statuses</option>
-                <option value="Pending">Pending</option>
-                <option value="Active">Active</option>
-                <option value="Inactive">Inactive</option>
-
-            </select>
-
+            <form method="get" action="/Admin/Employees" id="statusForm">
+                <input type="hidden" name="search" value="@Model.Search" />
+                <select name="status" class="form-control" style="width:150px;"
+                        onchange="document.getElementById('statusForm').submit()">
+                    <option value="All" selected="@(string.IsNullOrEmpty(Model.StatusFilter) || Model.StatusFilter == "All")">All Statuses</option>
+                    <option value="Pending" selected="@(Model.StatusFilter == "Pending")">Pending</option>
+                    <option value="Active" selected="@(Model.StatusFilter == "Active")">Active</option>
+                </select>
+            </form>
         </div>
-
     </div>
 
-
-    <!-- TABLE -->
     <div style="overflow-x:auto;">
-
         <table style="width:100%;border-collapse:collapse;">
-
             <thead>
-
                 <tr style="border-bottom:1px solid #e5e7eb;">
-
-                    <th style="padding:14px 20px;text-align:left;font-size:12px;color:#6b7280;">
-                        Employee
-                    </th>
-
-                    <th style="padding:14px 20px;text-align:left;font-size:12px;color:#6b7280;">
-                        Employee ID
-                    </th>
-
-                    <th style="padding:14px 20px;text-align:left;font-size:12px;color:#6b7280;">
-                        Department
-                    </th>
-
-                    <th style="padding:14px 20px;text-align:left;font-size:12px;color:#6b7280;">
-                        Position
-                    </th>
-
-                    <th style="padding:14px 20px;text-align:left;font-size:12px;color:#6b7280;">
-                        Status
-                    </th>
-
-                    <th style="padding:14px 20px;text-align:right;font-size:12px;color:#6b7280;">
-                        Actions
-                    </th>
-
+                    <th style="padding:14px 20px;text-align:left;font-size:12px;color:#6b7280;">Employee</th>
+                    <th style="padding:14px 20px;text-align:left;font-size:12px;color:#6b7280;">Email</th>
+                    <th style="padding:14px 20px;text-align:left;font-size:12px;color:#6b7280;">Role</th>
+                    <th style="padding:14px 20px;text-align:left;font-size:12px;color:#6b7280;">Department</th>
+                    <th style="padding:14px 20px;text-align:left;font-size:12px;color:#6b7280;">Status</th>
+                    <th style="padding:14px 20px;text-align:right;font-size:12px;color:#6b7280;">Actions</th>
                 </tr>
-
             </thead>
-
-
             <tbody>
-
-                @if (Model.Any())
+                @if (Model.Users != null && Model.Users.Any())
                 {
-                    foreach (var employee in Model)
+                    foreach (var user in Model.Users)
                     {
-                        var status = employee.Status ?? "Active";
-
-                        <tr class="user-row"
-                            data-status="@status"
+                        <tr class="user-row" data-status="@(user.IsActive ? "Active" : "Pending")"
                             style="border-bottom:1px solid #e5e7eb;">
-
-                            <!-- EMPLOYEE -->
                             <td style="padding:16px 20px;">
-
-                                <div style="
-                                            display:flex;
-                                            align-items:center;
-                                            gap:10px;
-                                        ">
-
-                                    <div class="avatar employee"
-                                         style="
-                                                    width:34px;
-                                                    height:34px;
-                                                    font-size:11px;
-                                                 ">
-
-                                        @employee.Initials
-
+                                <div style="display:flex;align-items:center;gap:10px;">
+                                    <div class="avatar employee" style="width:34px;height:34px;font-size:11px;">
+                                        @user.Initials
                                     </div>
-
-                                    <strong style="
-                                                font-size:13px;
-                                                color:#1a2942;
-                                            ">
-
-                                        @employee.FullName
-
-                                    </strong>
-
+                                    <div>
+                                        <strong style="font-size:13px;color:#1a2942;display:block;">@user.FullName</strong>
+                                        <span style="font-size:11px;color:#9ca3af;">@user.EmployeeId</span>
+                                    </div>
                                 </div>
-
                             </td>
 
+                            <td style="padding:16px 20px;font-size:13px;">@user.Email</td>
 
-                            <!-- EMPLOYEE ID -->
-                            <td style="
-                                        padding:16px 20px;
-                                        font-size:13px;
-                                    ">
-
-                                @employee.EmployeeId
-
+                            <td style="padding:16px 20px;font-size:13px;">
+                                <span class="badge @(user.Role == UserRole.Admin ? "badge-danger" : user.Role == UserRole.Supervisor ? "badge-info" : "badge-muted")">
+                                    @user.Role
+                                </span>
                             </td>
 
+                            <td style="padding:16px 20px;font-size:13px;">@(user.Department ?? "—")</td>
 
-                            <!-- DEPARTMENT -->
-                            <td style="
-                                        padding:16px 20px;
-                                        font-size:13px;
-                                    ">
-
-                                @employee.Department
-
-                            </td>
-
-
-                            <!-- POSITION -->
-                            <td style="
-                                        padding:16px 20px;
-                                        font-size:13px;
-                                    ">
-
-                                @employee.Position
-
-                            </td>
-
-
-                            <!-- STATUS -->
                             <td style="padding:16px 20px;">
-
-                                @if (status == "Pending")
+                                @if (user.IsActive)
                                 {
-                                    <span class="badge badge-warning">
-                                        Pending
-                                    </span>
-                                }
-                                else if (status == "Active")
-                                {
-                                    <span class="badge badge-success">
-                                        Active
-                                    </span>
-                                }
-                                else if (status == "Inactive")
-                                {
-                                    <span class="badge badge-danger">
-                                        Inactive
-                                    </span>
-                                }
-                                else if (status == "Rejected")
-                                {
-                                    <span class="badge badge-danger">
-                                        Rejected
-                                    </span>
+                                    <span class="badge badge-success"><i class="fa-solid fa-circle-check"></i> Active</span>
                                 }
                                 else
                                 {
-                                    <span class="badge">
-                                        @status
-                                    </span>
+                                    <span class="badge badge-warning"><i class="fa-solid fa-clock"></i> Pending</span>
                                 }
-
                             </td>
 
-
-                            <!-- ACTIONS -->
-                            <td style="
-                                        padding:16px 20px;
-                                        text-align:right;
-                                    ">
-
-                                @if (status == "Pending")
+                            <td style="padding:16px 20px;text-align:right;">
+                                @if (!user.IsActive)
                                 {
-                                    <div style="
-                                                    display:flex;
-                                                    justify-content:flex-end;
-                                                    gap:8px;
-                                                ">
-
-                                        <form asp-controller="Admin"
-                                              asp-action="ApproveUser"
-                                              method="post">
-
+                                    <div style="display:flex;justify-content:flex-end;gap:8px;">
+                                        <form asp-controller="Admin" asp-action="ApproveUser" method="post" style="display:inline;">
                                             @Html.AntiForgeryToken()
-
-                                            <input type="hidden"
-                                                   name="id"
-                                                   value="@employee.Id" />
-
-                                            <button type="submit"
-                                                    class="btn btn-success btn-sm">
-
-                                                <i class="fa-solid fa-check"></i>
-                                                Approve
-
+                                            <input type="hidden" name="id" value="@user.Id" />
+                                            <button type="submit" class="btn btn-success btn-sm">
+                                                <i class="fa-solid fa-check"></i> Approve
                                             </button>
-
                                         </form>
 
-
-                                        <form asp-controller="Admin"
-                                              asp-action="RejectUser"
-                                              method="post">
-
+                                        <form asp-controller="Admin" asp-action="RejectUser" method="post" style="display:inline;"
+                                              onsubmit="return confirm('Are you sure you want to reject and delete this user?');">
                                             @Html.AntiForgeryToken()
-
-                                            <input type="hidden"
-                                                   name="id"
-                                                   value="@employee.Id" />
-
-                                            <button type="submit"
-                                                    class="btn btn-danger btn-sm">
-
-                                                <i class="fa-solid fa-xmark"></i>
-                                                Reject
-
+                                            <input type="hidden" name="id" value="@user.Id" />
+                                            <button type="submit" class="btn btn-danger btn-sm">
+                                                <i class="fa-solid fa-xmark"></i> Reject
                                             </button>
-
                                         </form>
-
                                     </div>
                                 }
-                                else if (status == "Active")
-                                {
-                                    <form asp-controller="Admin"
-                                          asp-action="DeactivateUser"
-                                          method="post">
-
-                                        @Html.AntiForgeryToken()
-
-                                        <input type="hidden"
-                                               name="id"
-                                               value="@employee.Id" />
-
-                                        <button type="submit"
-                                                class="btn btn-outline btn-sm">
-
-                                            <i class="fa-solid fa-user-slash"></i>
-                                            Deactivate
-
-                                        </button>
-
-                                    </form>
-                                }
-                                else if (status == "Inactive")
-                                {
-                                    <form asp-controller="Admin"
-                                          asp-action="ActivateUser"
-                                          method="post">
-
-                                        @Html.AntiForgeryToken()
-
-                                        <input type="hidden"
-                                               name="id"
-                                               value="@employee.Id" />
-
-                                        <button type="submit"
-                                                class="btn btn-success btn-sm">
-
-                                            <i class="fa-solid fa-user-check"></i>
-                                            Activate
-
-                                        </button>
-
-                                    </form>
-                                }
                                 else
                                 {
-                                    <span style="
-                                                    font-size:12px;
-                                                    color:#6b7280;
-                                                ">
-                                        No actions
-                                    </span>
+                                    <form asp-controller="Admin" asp-action="DeactivateUser" method="post" style="display:inline;"
+                                          onsubmit="return confirm('Deactivate this user?');">
+                                        @Html.AntiForgeryToken()
+                                        <input type="hidden" name="id" value="@user.Id" />
+                                        <button type="submit" class="btn btn-outline btn-sm">
+                                            <i class="fa-solid fa-user-slash"></i> Deactivate
+                                        </button>
+                                    </form>
                                 }
-
                             </td>
-
                         </tr>
                     }
                 }
                 else
                 {
                     <tr>
-
-                        <td colspan="6"
-                            style="
-                                    padding:40px 20px;
-                                    text-align:center;
-                                ">
-
-                            <div style="
-                                    width:50px;
-                                    height:50px;
-                                    margin:0 auto 12px;
-                                    border-radius:50%;
-                                    background:#f0f4f8;
-                                    display:flex;
-                                    align-items:center;
-                                    justify-content:center;
-                                    color:#6b7280;
-                                ">
-
+                        <td colspan="6" style="padding:40px 20px;text-align:center;">
+                            <div style="width:50px;height:50px;margin:0 auto 12px;border-radius:50%;background:#f0f4f8;display:flex;align-items:center;justify-content:center;color:#6b7280;">
                                 <i class="fa-solid fa-users"></i>
-
                             </div>
-
-                            <strong style="
-                                    display:block;
-                                    color:#1a2942;
-                                ">
-                                No users found
-                            </strong>
-
-                            <span style="
-                                    display:block;
-                                    margin-top:5px;
-                                    font-size:12px;
-                                    color:#6b7280;
-                                ">
+                            <strong style="display:block;color:#1a2942;">No users found</strong>
+                            <span style="display:block;margin-top:5px;font-size:12px;color:#6b7280;">
                                 No accounts match your search.
                             </span>
-
                         </td>
-
                     </tr>
                 }
-
             </tbody>
-
         </table>
-
     </div>
-
 </div>
-
-
-@section Scripts {
-
-    <script>
-
-        function filterUsers() {
-
-            const filter = document
-                .getElementById("statusFilter")
-                .value;
-
-            const rows = document.querySelectorAll(".user-row");
-
-            rows.forEach(function (row) {
-
-                const status = row.dataset.status;
-
-                if (filter === "All" || status === filter) {
-                    row.style.display = "";
-                }
-                else {
-                    row.style.display = "none";
-                }
-
-            });
-
-        }
-
-    </script>
-
-}

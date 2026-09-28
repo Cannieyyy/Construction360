@@ -46,39 +46,42 @@ namespace Construction360.Controllers
                     return View(model);
                 }
 
+                // ✅ Check if account is active
                 if (!user.IsActive)
                 {
-                    ModelState.AddModelError("", "Your account has been deactivated. Please contact administrator.");
+                    ModelState.AddModelError("", "Your account is pending approval. Please contact an administrator.");
                     return View(model);
                 }
 
                 // Create claims
                 var claims = new List<Claim>
-                {
-                    new Claim(ClaimTypes.Name, user.FullName),
-                    new Claim(ClaimTypes.Email, user.Email),
-                    new Claim(ClaimTypes.Role, user.Role.ToString()),
-                    new Claim("UserId", user.Id.ToString()),
-                    new Claim("EmployeeId", user.EmployeeId ?? ""),
-                    new Claim("Initials", GetInitials(user.FullName)),
-                    new Claim("Department", user.Department ?? ""),
-                    new Claim("Position", user.Position ?? "")
-                };
+        {
+            new Claim(ClaimTypes.Name, user.FullName),
+            new Claim(ClaimTypes.Email, user.Email),
+            new Claim(ClaimTypes.Role, user.Role.ToString()),
+            new Claim("UserId", user.Id.ToString()),
+            new Claim("EmployeeId", user.EmployeeId ?? ""),
+            new Claim("Initials", GetInitials(user.FullName)),
+            new Claim("Department", user.Department ?? ""),
+            new Claim("Position", user.Position ?? "")
+        };
 
                 var identity = new ClaimsIdentity(claims, "Cookies");
                 var principal = new ClaimsPrincipal(identity);
 
                 await HttpContext.SignInAsync("Cookies", principal, new AuthenticationProperties
                 {
-                    IsPersistent = model.RememberMe, 
-                    ExpiresUtc = model.RememberMe ? DateTimeOffset.UtcNow.AddDays(7) : DateTimeOffset.UtcNow.AddHours(8)
+                    IsPersistent = model.RememberMe,
+                    ExpiresUtc = model.RememberMe
+                        ? DateTimeOffset.UtcNow.AddDays(7)
+                        : DateTimeOffset.UtcNow.AddHours(8)
                 });
 
-                // Redirect based on role
                 return RedirectToDashboard();
             }
             catch (Exception ex)
             {
+                Console.WriteLine($"Login error: {ex.Message}");
                 ModelState.AddModelError("", "An error occurred during login. Please try again.");
                 return View(model);
             }

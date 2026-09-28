@@ -14,6 +14,10 @@ namespace Construction360.Repositories
             _databaseService = databaseService;
         }
 
+        // ============================================================
+        // ===== BASIC USER OPERATIONS =====
+        // ============================================================
+
         public async Task<User> GetUserByIdAsync(int id)
         {
             string sql = @"
@@ -75,7 +79,7 @@ namespace Construction360.Repositories
                 SELECT User_ID, FullName, Username, Email, PasswordHash, Salt, 
                        Role, EmployeeId, Department, Position, IsActive, CreatedDate, LastLoginDate
                 FROM Users 
-                ORDER BY FullName";
+                ORDER BY CreatedDate DESC";
 
             using var reader = _databaseService.ExecuteReader(sql);
             while (await reader.ReadAsync())
@@ -91,7 +95,6 @@ namespace Construction360.Repositories
             if (user == null)
                 return null;
 
-            // Verify password WITHOUT checking IsActive (controller handles that)
             string sql = "SELECT Salt, PasswordHash FROM Users WHERE Email = @Email";
             var parameters = new[] { new SqlParameter("@Email", email) };
 
@@ -103,8 +106,16 @@ namespace Construction360.Repositories
 
                 if (PasswordHelper.VerifyPassword(password, salt, storedHash))
                 {
+                    // Update last login time
                     await UpdateLastLoginAsync(user.Id);
-                    return user;  // Return even if inactive; controller decides
+
+                    // Record the login if user is active
+                    if (user.IsActive)
+                    {
+                        await RecordLoginAsync(user);
+                    }
+
+                    return user;
                 }
             }
             return null;
@@ -114,7 +125,7 @@ namespace Construction360.Repositories
         {
             try
             {
-                Console.WriteLine("========== CreateUserAsync START ==========");
+                Console.WriteLine($"========== CreateUserAsync ==========");
                 Console.WriteLine($"Email: {user.Email}, Username: {user.Username}, Role: {user.Role}");
 
                 var salt = PasswordHelper.GenerateSalt();
@@ -127,52 +138,42 @@ namespace Construction360.Repositories
                     user.EmployeeId = $"EMP-{year}-{(count + 1):D3}";
                 }
 
-                // Set IsActive to false here (new users need approval)
+                // Force IsActive to false for new users (admin must approve)
                 user.IsActive = false;
 
                 string sql = @"
-            INSERT INTO Users (FullName, Username, Email, PasswordHash, Salt, Role, 
-                               EmployeeId, Department, Position, IsActive, CreatedDate)
-            VALUES (@FullName, @Username, @Email, @PasswordHash, @Salt, @Role, 
-                    @EmployeeId, @Department, @Position, @IsActive, @CreatedDate)";
+                    INSERT INTO Users (FullName, Username, Email, PasswordHash, Salt, Role, 
+                                       EmployeeId, Department, Position, IsActive, CreatedDate)
+                    VALUES (@FullName, @Username, @Email, @PasswordHash, @Salt, @Role, 
+                            @EmployeeId, @Department, @Position, @IsActive, @CreatedDate)";
 
                 var parameters = new[]
                 {
-            new SqlParameter("@FullName", user.FullName),
-            new SqlParameter("@Username", user.Username),
-            new SqlParameter("@Email", user.Email),
-            new SqlParameter("@PasswordHash", hashedPassword),
-            new SqlParameter("@Salt", salt),
-            new SqlParameter("@Role", user.Role.ToString()),
-            new SqlParameter("@EmployeeId", user.EmployeeId),
-            new SqlParameter("@Department", user.Department ?? (object)DBNull.Value),
-            new SqlParameter("@Position", user.Position ?? (object)DBNull.Value),
-            new SqlParameter("@IsActive", user.IsActive),
-            new SqlParameter("@CreatedDate", DateTime.Now)
-        };
+                    new SqlParameter("@FullName", user.FullName),
+                    new SqlParameter("@Username", user.Username),
+                    new SqlParameter("@Email", user.Email),
+                    new SqlParameter("@PasswordHash", hashedPassword),
+                    new SqlParameter("@Salt", salt),
+                    new SqlParameter("@Role", user.Role.ToString()),
+                    new SqlParameter("@EmployeeId", user.EmployeeId),
+                    new SqlParameter("@Department", (object)user.Department ?? DBNull.Value),
+                    new SqlParameter("@Position", (object)user.Position ?? DBNull.Value),
+                    new SqlParameter("@IsActive", user.IsActive),
+                    new SqlParameter("@CreatedDate", DateTime.Now)
+                };
 
-                Console.WriteLine("Executing INSERT...");
                 var result = await Task.Run(() => _databaseService.ExecuteNonQuery(sql, parameters));
-                Console.WriteLine($"Rows affected: {result}");
-                Console.WriteLine("========== CreateUserAsync END ==========");
-
+                Console.WriteLine($"✅ Rows affected: {result}");
                 return result > 0;
             }
             catch (SqlException sqlEx)
             {
-                Console.WriteLine($"========== SQL ERROR ==========");
-                Console.WriteLine($"Message: {sqlEx.Message}");
-                Console.WriteLine($"Error Number: {sqlEx.Number}");
-                Console.WriteLine($"Procedure: {sqlEx.Procedure}");
-                Console.WriteLine("================================");
+                Console.WriteLine($"❌ SQL ERROR: {sqlEx.Message} (Code: {sqlEx.Number})");
                 return false;
             }
             catch (Exception ex)
             {
-                Console.WriteLine($"========== GENERAL ERROR ==========");
-                Console.WriteLine($"Message: {ex.Message}");
-                Console.WriteLine($"Stack: {ex.StackTrace}");
-                Console.WriteLine("====================================");
+                Console.WriteLine($"❌ ERROR: {ex.Message}");
                 return false;
             }
         }
@@ -197,8 +198,8 @@ namespace Construction360.Repositories
                 new SqlParameter("@Username", user.Username),
                 new SqlParameter("@Email", user.Email),
                 new SqlParameter("@Role", user.Role.ToString()),
-                new SqlParameter("@Department", user.Department ?? (object)DBNull.Value),
-                new SqlParameter("@Position", user.Position ?? (object)DBNull.Value),
+                new SqlParameter("@Department", (object)user.Department ?? DBNull.Value),
+                new SqlParameter("@Position", (object)user.Position ?? DBNull.Value),
                 new SqlParameter("@IsActive", user.IsActive)
             };
 
@@ -208,7 +209,6 @@ namespace Construction360.Repositories
 
         public async Task<bool> DeleteUserAsync(int id)
         {
-            // Soft delete - just deactivate
             string sql = "UPDATE Users SET IsActive = 0 WHERE User_ID = @UserId";
             var parameters = new[] { new SqlParameter("@UserId", id) };
             var result = await Task.Run(() => _databaseService.ExecuteNonQuery(sql, parameters));
@@ -238,6 +238,332 @@ namespace Construction360.Repositories
             await Task.Run(() => _databaseService.ExecuteNonQuery(sql, parameters));
         }
 
+        // ============================================================
+        // ===== USER APPROVAL / ACTIVATION =====
+        // ============================================================
+
+        public async Task<bool> ApproveUserAsync(int userId)
+        {
+            try
+            {
+                Console.WriteLine($"========== ApproveUserAsync ==========");
+                Console.WriteLine($"User ID: {userId}");
+
+                string sql = "UPDATE Users SET IsActive = 1 WHERE User_ID = @UserId";
+                var parameters = new[] { new SqlParameter("@UserId", userId) };
+
+                var result = await Task.Run(() => _databaseService.ExecuteNonQuery(sql, parameters));
+
+                Console.WriteLine($"✅ Rows affected: {result}");
+                return result > 0;
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"❌ ApproveUserAsync error: {ex.Message}");
+                return false;
+            }
+        }
+
+        public async Task<bool> RejectUserAsync(int userId)
+        {
+            try
+            {
+                Console.WriteLine($"========== RejectUserAsync ==========");
+                Console.WriteLine($"User ID: {userId}");
+
+                // Delete the user completely (they can re-register if rejected by mistake)
+                string sql = "DELETE FROM Users WHERE User_ID = @UserId AND IsActive = 0";
+                var parameters = new[] { new SqlParameter("@UserId", userId) };
+
+                var result = await Task.Run(() => _databaseService.ExecuteNonQuery(sql, parameters));
+
+                Console.WriteLine($"✅ Rows affected: {result}");
+                return result > 0;
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"❌ RejectUserAsync error: {ex.Message}");
+                return false;
+            }
+        }
+
+        public async Task<bool> DeactivateUserAsync(int userId)
+        {
+            try
+            {
+                string sql = "UPDATE Users SET IsActive = 0 WHERE User_ID = @UserId";
+                var parameters = new[] { new SqlParameter("@UserId", userId) };
+
+                var result = await Task.Run(() => _databaseService.ExecuteNonQuery(sql, parameters));
+                return result > 0;
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"❌ DeactivateUserAsync error: {ex.Message}");
+                return false;
+            }
+        }
+
+        public async Task<List<User>> GetPendingUsersAsync()
+        {
+            return await GetUsersByStatusAsync("pending");
+        }
+
+        public async Task<List<User>> GetActiveUsersAsync()
+        {
+            return await GetUsersByStatusAsync("active");
+        }
+
+        public async Task<List<User>> GetUsersByStatusAsync(string status)
+        {
+            var users = new List<User>();
+
+            try
+            {
+                string sql = @"
+                    SELECT User_ID, FullName, Username, Email, PasswordHash, Salt, 
+                           Role, EmployeeId, Department, Position, IsActive, CreatedDate, LastLoginDate
+                    FROM Users";
+
+                switch (status?.ToLower())
+                {
+                    case "pending":
+                        sql += " WHERE IsActive = 0";
+                        break;
+                    case "active":
+                        sql += " WHERE IsActive = 1";
+                        break;
+                    case "inactive":
+                        sql += " WHERE IsActive = 0";
+                        break;
+                }
+
+                sql += " ORDER BY CreatedDate DESC";
+
+                using var reader = _databaseService.ExecuteReader(sql);
+                while (await reader.ReadAsync())
+                {
+                    users.Add(MapUser(reader));
+                }
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"❌ GetUsersByStatusAsync error: {ex.Message}");
+            }
+
+            return users;
+        }
+
+        public async Task<Dictionary<string, int>> GetUserStatsAsync()
+        {
+            var stats = new Dictionary<string, int>
+            {
+                { "Total", 0 },
+                { "Active", 0 },
+                { "Pending", 0 },
+                { "Inactive", 0 }
+            };
+
+            try
+            {
+                string sql = @"
+                    SELECT 
+                        COUNT(*) AS Total,
+                        SUM(CASE WHEN IsActive = 1 THEN 1 ELSE 0 END) AS Active,
+                        SUM(CASE WHEN IsActive = 0 THEN 1 ELSE 0 END) AS Pending
+                    FROM Users";
+
+                using var reader = _databaseService.ExecuteReader(sql);
+                if (await reader.ReadAsync())
+                {
+                    stats["Total"] = Convert.ToInt32(reader["Total"]);
+                    stats["Active"] = Convert.ToInt32(reader["Active"]);
+                    stats["Pending"] = Convert.ToInt32(reader["Pending"]);
+                    stats["Inactive"] = 0;
+                }
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"❌ GetUserStatsAsync error: {ex.Message}");
+            }
+
+            return stats;
+        }
+
+        // ============================================================
+        // ===== LOGIN TRACKING =====
+        // ============================================================
+
+        public async Task RecordLoginAsync(User user, string location = "Main Office")
+        {
+            try
+            {
+                var nameParts = user.FullName.Split(' ', StringSplitOptions.RemoveEmptyEntries);
+                var firstName = nameParts.FirstOrDefault() ?? user.FullName;
+                var surname = nameParts.Length > 1
+                    ? string.Join(" ", nameParts.Skip(1))
+                    : "";
+                var initials = string.Concat(
+                    nameParts.Select(x => x.Length > 0 ? x[0].ToString() : "")
+                ).ToUpper();
+
+                string sql = @"
+                    INSERT INTO LoginRecords (User_ID, Name, Surname, Initials, LoginTime, Location)
+                    VALUES (@UserId, @Name, @Surname, @Initials, @LoginTime, @Location)";
+
+                var parameters = new[]
+                {
+                    new SqlParameter("@UserId", user.Id),
+                    new SqlParameter("@Name", firstName),
+                    new SqlParameter("@Surname", surname),
+                    new SqlParameter("@Initials", initials),
+                    new SqlParameter("@LoginTime", DateTime.Now),
+                    new SqlParameter("@Location", location)
+                };
+
+                await Task.Run(() => _databaseService.ExecuteNonQuery(sql, parameters));
+                Console.WriteLine($"✅ Login recorded for {user.Email}");
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"❌ RecordLoginAsync error: {ex.Message}");
+                // Don't throw — login should succeed even if tracking fails
+            }
+        }
+
+        public async Task<List<LoginRecord>> GetRecentLoginsAsync(int count)
+        {
+            var records = new List<LoginRecord>();
+
+            try
+            {
+                string sql = @"
+                    SELECT TOP (@Count)
+                        LoginRecord_ID, User_ID, Name, Surname, Initials, LoginTime, Location
+                    FROM LoginRecords
+                    ORDER BY LoginTime DESC";
+
+                var parameters = new[] { new SqlParameter("@Count", count) };
+
+                using var reader = _databaseService.ExecuteReader(sql, parameters);
+                while (await reader.ReadAsync())
+                {
+                    records.Add(MapLoginRecord(reader));
+                }
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"❌ GetRecentLoginsAsync error: {ex.Message}");
+            }
+
+            return records;
+        }
+
+        public async Task<List<LoginRecord>> SearchLoginsAsync(string searchTerm)
+        {
+            var records = new List<LoginRecord>();
+
+            try
+            {
+                string sql = @"
+                    SELECT 
+                        LoginRecord_ID, User_ID, Name, Surname, Initials, LoginTime, Location
+                    FROM LoginRecords
+                    WHERE Name LIKE @Search 
+                       OR Surname LIKE @Search
+                       OR (Name + ' ' + Surname) LIKE @Search
+                    ORDER BY LoginTime DESC";
+
+                var parameters = new[]
+                {
+                    new SqlParameter("@Search", $"%{searchTerm}%")
+                };
+
+                using var reader = _databaseService.ExecuteReader(sql, parameters);
+                while (await reader.ReadAsync())
+                {
+                    records.Add(MapLoginRecord(reader));
+                }
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"❌ SearchLoginsAsync error: {ex.Message}");
+            }
+
+            return records;
+        }
+
+        public async Task<int> GetTotalLoginsAsync()
+        {
+            try
+            {
+                string sql = "SELECT COUNT(*) FROM LoginRecords";
+                var result = await Task.Run(() => _databaseService.ExecuteScalar(sql));
+                return Convert.ToInt32(result);
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"❌ GetTotalLoginsAsync error: {ex.Message}");
+                return 0;
+            }
+        }
+
+        public async Task<int> GetTodayLoginsAsync()
+        {
+            try
+            {
+                string sql = @"
+                    SELECT COUNT(*) FROM LoginRecords 
+                    WHERE CAST(LoginTime AS DATE) = CAST(GETDATE() AS DATE)";
+
+                var result = await Task.Run(() => _databaseService.ExecuteScalar(sql));
+                return Convert.ToInt32(result);
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"❌ GetTodayLoginsAsync error: {ex.Message}");
+                return 0;
+            }
+        }
+
+        public async Task<int> GetRecentLoginsCountAsync(int days)
+        {
+            try
+            {
+                string sql = @"
+                    SELECT COUNT(*) FROM LoginRecords 
+                    WHERE LoginTime >= DATEADD(day, -@Days, GETDATE())";
+
+                var parameters = new[] { new SqlParameter("@Days", days) };
+                var result = await Task.Run(() => _databaseService.ExecuteScalar(sql, parameters));
+                return Convert.ToInt32(result);
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"❌ GetRecentLoginsCountAsync error: {ex.Message}");
+                return 0;
+            }
+        }
+
+        public async Task<int> GetUniqueLocationsCountAsync()
+        {
+            try
+            {
+                string sql = "SELECT COUNT(DISTINCT Location) FROM LoginRecords WHERE Location IS NOT NULL";
+                var result = await Task.Run(() => _databaseService.ExecuteScalar(sql));
+                return Convert.ToInt32(result);
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"❌ GetUniqueLocationsCountAsync error: {ex.Message}");
+                return 0;
+            }
+        }
+
+        // ============================================================
+        // ===== PRIVATE HELPERS =====
+        // ============================================================
+
         private async Task<int> GetUserCountAsync()
         {
             string sql = "SELECT COUNT(*) FROM Users";
@@ -250,47 +576,37 @@ namespace Construction360.Repositories
             return new User
             {
                 Id = reader.GetInt32(reader.GetOrdinal("User_ID")),
-                FullName = reader["FullName"].ToString(),
-                Username = reader["Username"].ToString(),
-                Email = reader["Email"].ToString(),
-                Role = Enum.Parse<UserRole>(reader["Role"].ToString()),
+                FullName = reader["FullName"].ToString() ?? "",
+                Username = reader["Username"].ToString() ?? "",
+                Email = reader["Email"].ToString() ?? "",
+                Role = Enum.Parse<UserRole>(reader["Role"].ToString() ?? "Employee"),
                 EmployeeId = reader["EmployeeId"]?.ToString() ?? "",
                 Department = reader["Department"]?.ToString() ?? "",
                 Position = reader["Position"]?.ToString() ?? "",
                 IsActive = Convert.ToBoolean(reader["IsActive"]),
-                CreatedDate = reader["CreatedDate"] != DBNull.Value ? Convert.ToDateTime(reader["CreatedDate"]) : DateTime.MinValue,
-                LastLoginDate = reader["LastLoginDate"] != DBNull.Value ? Convert.ToDateTime(reader["LastLoginDate"]) : (DateTime?)null
+                CreatedDate = reader["CreatedDate"] != DBNull.Value
+                    ? Convert.ToDateTime(reader["CreatedDate"])
+                    : DateTime.MinValue,
+                LastLoginDate = reader["LastLoginDate"] != DBNull.Value
+                    ? Convert.ToDateTime(reader["LastLoginDate"])
+                    : (DateTime?)null
             };
         }
 
-        public Task<User> GetUserByIdAzync(int id)
+        private LoginRecord MapLoginRecord(SqlDataReader reader)
         {
-            throw new NotImplementedException();
-        }
-
-        public Task<User> GetUserByEmailAzync(string email)
-        {
-            throw new NotImplementedException();
-        }
-
-        public Task<User> GetUserByUsernameAzync(string username)
-        {
-            throw new NotImplementedException();
-        }
-
-        public Task<IEnumerable<User>> GetAllUsersAzync()
-        {
-            throw new NotImplementedException();
-        }
-
-        public Task<bool> CreateUserAsync(int id)
-        {
-            throw new NotImplementedException();
-        }
-
-        public Task<bool> CreateUserAsync(string email, string username)
-        {
-            throw new NotImplementedException();
+            return new LoginRecord
+            {
+                Id = reader.GetInt32(reader.GetOrdinal("LoginRecord_ID")),
+                UserId = reader.GetInt32(reader.GetOrdinal("User_ID")),
+                Name = reader["Name"]?.ToString() ?? "",
+                Surname = reader["Surname"]?.ToString() ?? "",
+                Initials = reader["Initials"]?.ToString() ?? "",
+                LoginTime = reader["LoginTime"] != DBNull.Value
+                    ? Convert.ToDateTime(reader["LoginTime"])
+                    : DateTime.MinValue,
+                Location = reader["Location"]?.ToString() ?? ""
+            };
         }
     }
 }

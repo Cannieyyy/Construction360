@@ -1,68 +1,63 @@
 ﻿using Construction360.Enums;
 using Construction360.Models;
+using Construction360.Repositories;
 using Construction360.ViewModels;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
 namespace Construction360.Controllers
 {
+    [Authorize(Roles = "Admin")]
     public class AdminController : Controller
     {
-        public IActionResult Dashboard()
+        private readonly IUserRepository _userRepository;
+
+        public AdminController(IUserRepository userRepository)
         {
+            _userRepository = userRepository;
+        }
+
+        // ===== DASHBOARD =====
+        public async Task<IActionResult> Dashboard()
+        {
+            var stats = await _userRepository.GetUserStatsAsync();
+
             var vm = new AdminDashboardViewModel
             {
-                TotalEmployees = 50,
-                PresentToday = 42,
-                AbsentToday = 3,
-                PendingLeaves = MockData.LeaveRequests.Count(l => l.Status == LeaveStatus.Pending),
-                OnLeave = 5,
-                LateArrivals = 2,
-                AvgProductivity = 94,
-                WeeklyAttendance = MockData.WeeklyAttendanceData,
-                DepartmentDistribution = new Dictionary<string, double>
-            {
-                { "Manufacturing", 44 },
-                { "Quality Control", 15 },
-                { "Administration", 9 },
-                { "Maintenance", 10 },
-                { "Logistics", 22 }
-            }
+                TotalAccounts = stats.GetValueOrDefault("Total", 0),
+                ActiveAccounts = stats.GetValueOrDefault("Active", 0),
+                PendingAccounts = stats.GetValueOrDefault("Pending", 0),
+                InactiveAccounts = stats.GetValueOrDefault("Inactive", 0),
+                BuildingOccupancy = stats.GetValueOrDefault("Active", 0),
+                EmployeeCountInside = 0,
+                SupervisorCountInside = 0,
+                SystemStatus = "Operational"
             };
+
             return View(vm);
         }
-        public IActionResult LoginTracker(string? search)
+
+        // ===== LOGIN TRACKER =====
+        public async Task<IActionResult> LoginTracker(string? search)
         {
-            var logins = MockData.LoginRecords.AsQueryable();
+            List<LoginRecord> logins;
 
             if (!string.IsNullOrWhiteSpace(search))
             {
-                logins = logins.Where(l =>
-                    l.Name.Contains(search, StringComparison.OrdinalIgnoreCase) ||
-                    l.Surname.Contains(search, StringComparison.OrdinalIgnoreCase) ||
-                    $"{l.Name} {l.Surname}".Contains(search, StringComparison.OrdinalIgnoreCase));
+                logins = await _userRepository.SearchLoginsAsync(search);
             }
-
-            var loginList = logins
-                .OrderByDescending(l => l.LoginTime)
-                .ToList();
+            else
+            {
+                logins = await _userRepository.GetRecentLoginsAsync(100);
+            }
 
             var vm = new LoginTrackerViewModel
             {
-                TotalLogins = MockData.LoginRecords.Count,
-
-                TodayLogins = MockData.LoginRecords.Count(l =>
-                    l.LoginTime.Date == DateTime.Today),
-
-                RecentLogins = MockData.LoginRecords.Count(l =>
-                    l.LoginTime >= DateTime.Now.AddDays(-7)),
-
-                UniqueLocations = MockData.LoginRecords
-                    .Select(l => l.Location)
-                    .Distinct()
-                    .Count(),
-
-                Logins = loginList.Select(l => new LoginTrackerItemViewModel
+                TotalLogins = await _userRepository.GetTotalLoginsAsync(),
+                TodayLogins = await _userRepository.GetTodayLoginsAsync(),
+                RecentLogins = await _userRepository.GetRecentLoginsCountAsync(7),
+                UniqueLocations = await _userRepository.GetUniqueLocationsCountAsync(),
+                Logins = logins.Select(l => new LoginTrackerItemViewModel
                 {
                     Name = l.Name,
                     Surname = l.Surname,
@@ -73,61 +68,142 @@ namespace Construction360.Controllers
             };
 
             ViewBag.Search = search;
+            return View(vm);
+        }
+
+        // ===== USER MANAGEMENT =====
+        public async Task<IActionResult> Employees(string? search, string? status)
+        {
+            var allUsers = await _userRepository.GetAllUsersAsync();
+            var usersList = allUsers.ToList();
+
+            if (!string.IsNullOrWhiteSpace(search))
+            {
+                usersList = usersList.Where(u =>
+                    u.FullName.Contains(search, StringComparison.OrdinalIgnoreCase) ||
+                    u.Email.Contains(search, StringComparison.OrdinalIgnoreCase) ||
+                    u.Username.Contains(search, StringComparison.OrdinalIgnoreCase) ||
+                    (u.EmployeeId ?? "").Contains(search, StringComparison.OrdinalIgnoreCase)
+                ).ToList();
+            }
+
+            if (!string.IsNullOrWhiteSpace(status) && status != "All")
+            {
+                if (status == "Active")
+                    usersList = usersList.Where(u => u.IsActive).ToList();
+                else if (status == "Pending")
+                    usersList = usersList.Where(u => !u.IsActive).ToList();
+            }
+
+            var stats = await _userRepository.GetUserStatsAsync();
+
+            var vm = new UserManagementViewModel
+            {
+                TotalAccounts = stats.GetValueOrDefault("Total", 0),
+                ActiveAccounts = stats.GetValueOrDefault("Active", 0),
+                PendingAccounts = stats.GetValueOrDefault("Pending", 0),
+                InactiveAccounts = stats.GetValueOrDefault("Inactive", 0),
+                Users = usersList,
+                Search = search,
+                StatusFilter = status
+            };
 
             return View(vm);
         }
-        public IActionResult Employees(string? search, string? department, string? status)
-        {
-            var employees = MockData.Employees.AsQueryable();
-            if (!string.IsNullOrEmpty(search))
-                employees = employees.Where(e => e.FullName.Contains(search, StringComparison.OrdinalIgnoreCase)
-                    || e.EmployeeId.Contains(search, StringComparison.OrdinalIgnoreCase));
-            if (!string.IsNullOrEmpty(department) && department != "All")
-                employees = employees.Where(e => e.Department == department);
-            if (!string.IsNullOrEmpty(status) && status != "All")
-                employees = employees.Where(e => e.Status == status);
 
-            ViewBag.Search = search;
-            ViewBag.Department = department;
-            ViewBag.Status = status;
-            return View(employees.ToList());
-        }
-
-        public IActionResult Attendance()
-        {
-            var today = MockData.Attendance.Where(a => a.Date.Date == DateTime.Today).ToList();
-            ViewBag.Present = today.Count(a => a.Status == AttendanceStatus.Present);
-            ViewBag.Absent = today.Count(a => a.Status == AttendanceStatus.Absent);
-            ViewBag.Late = today.Count(a => a.Status == AttendanceStatus.Late);
-            ViewBag.OnLeave = today.Count(a => a.Status == AttendanceStatus.OnLeave);
-            ViewBag.Weekly = MockData.WeeklyAttendanceData;
-            return View(today);
-        }
-
-        public IActionResult LeaveManagement(string? filter)
-        {
-            var leaves = MockData.LeaveRequests.AsQueryable();
-            if (!string.IsNullOrEmpty(filter) && filter != "All")
-                leaves = leaves.Where(l => l.Status.ToString() == filter);
-            ViewBag.Filter = filter ?? "All";
-            ViewBag.PendingCount = MockData.LeaveRequests.Count(l => l.Status == LeaveStatus.Pending);
-            return View(leaves.ToList());
-        }
-
+        // ===== APPROVE USER =====
         [HttpPost]
-        public IActionResult ApproveLeave(int id)
+        [ValidateAntiForgeryToken]
+        public async Task<IActionResult> ApproveUser(int id)
         {
-            MockData.ApproveLeave(id);
-            return RedirectToAction("LeaveManagement");
+            try
+            {
+                var result = await _userRepository.ApproveUserAsync(id);
+
+                if (result)
+                    TempData["SuccessMessage"] = "User approved successfully!";
+                else
+                    TempData["ErrorMessage"] = "Failed to approve user.";
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"❌ ApproveUser error: {ex.Message}");
+                TempData["ErrorMessage"] = "An error occurred while approving the user.";
+            }
+
+            return RedirectToAction("Employees");
         }
 
+        // ===== REJECT USER =====
         [HttpPost]
-        public IActionResult RejectLeave(int id)
+        [ValidateAntiForgeryToken]
+        public async Task<IActionResult> RejectUser(int id)
         {
-            MockData.RejectLeave(id);
-            return RedirectToAction("LeaveManagement");
+            try
+            {
+                var result = await _userRepository.RejectUserAsync(id);
+
+                if (result)
+                    TempData["SuccessMessage"] = "User rejected and removed.";
+                else
+                    TempData["ErrorMessage"] = "Failed to reject user.";
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"❌ RejectUser error: {ex.Message}");
+                TempData["ErrorMessage"] = "An error occurred while rejecting the user.";
+            }
+
+            return RedirectToAction("Employees");
         }
 
+        // ===== DEACTIVATE USER =====
+        [HttpPost]
+        [ValidateAntiForgeryToken]
+        public async Task<IActionResult> DeactivateUser(int id)
+        {
+            try
+            {
+                var result = await _userRepository.DeactivateUserAsync(id);
+
+                if (result)
+                    TempData["SuccessMessage"] = "User deactivated.";
+                else
+                    TempData["ErrorMessage"] = "Failed to deactivate user.";
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"❌ DeactivateUser error: {ex.Message}");
+                TempData["ErrorMessage"] = "An error occurred.";
+            }
+
+            return RedirectToAction("Employees");
+        }
+
+        // ===== ACTIVATE USER =====
+        [HttpPost]
+        [ValidateAntiForgeryToken]
+        public async Task<IActionResult> ActivateUser(int id)
+        {
+            try
+            {
+                var result = await _userRepository.ApproveUserAsync(id);
+
+                if (result)
+                    TempData["SuccessMessage"] = "User activated successfully!";
+                else
+                    TempData["ErrorMessage"] = "Failed to activate user.";
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"❌ ActivateUser error: {ex.Message}");
+                TempData["ErrorMessage"] = "An error occurred.";
+            }
+
+            return RedirectToAction("Employees");
+        }
+
+        // ===== NOTIFICATIONS =====
         public IActionResult Notifications(string? filter)
         {
             var notifications = MockData.Notifications.AsQueryable();
@@ -135,13 +211,9 @@ namespace Construction360.Controllers
             if (!string.IsNullOrWhiteSpace(filter) && filter != "All")
             {
                 if (filter == "Unread")
-                {
                     notifications = notifications.Where(n => !n.IsRead);
-                }
                 else
-                {
                     notifications = notifications.Where(n => n.Type == filter);
-                }
             }
 
             ViewBag.UnreadCount = MockData.Notifications.Count(n => !n.IsRead);
@@ -153,30 +225,16 @@ namespace Construction360.Controllers
         [HttpPost]
         public IActionResult MarkNotificationRead(int id)
         {
-            var notification = MockData.Notifications
-                .FirstOrDefault(n => n.Id == id);
-
-            if (notification != null)
-            {
-                notification.IsRead = true;
-            }
-
+            var notification = MockData.Notifications.FirstOrDefault(n => n.Id == id);
+            if (notification != null) notification.IsRead = true;
             return RedirectToAction("Notifications");
         }
-
-
 
         [HttpPost]
         public IActionResult DeleteNotification(int id)
         {
-            var notification = MockData.Notifications
-                .FirstOrDefault(n => n.Id == id);
-
-            if (notification != null)
-            {
-                MockData.Notifications.Remove(notification);
-            }
-
+            var notification = MockData.Notifications.FirstOrDefault(n => n.Id == id);
+            if (notification != null) MockData.Notifications.Remove(notification);
             return RedirectToAction("Notifications");
         }
 
@@ -187,27 +245,20 @@ namespace Construction360.Controllers
             return RedirectToAction("Notifications");
         }
 
-
+        // ===== ANNOUNCEMENTS =====
         public IActionResult Announcements()
         {
             var announcements = MockData.Announcements
                 .OrderByDescending(a => a.SentDate)
                 .ToList();
-
             return View(announcements);
         }
 
         [HttpPost]
-        public IActionResult SendAnnouncement(
-            string title,
-            string message,
-            string audience)
+        public IActionResult SendAnnouncement(string title, string message, string audience)
         {
-            if (string.IsNullOrWhiteSpace(title) ||
-                string.IsNullOrWhiteSpace(message))
-            {
+            if (string.IsNullOrWhiteSpace(title) || string.IsNullOrWhiteSpace(message))
                 return RedirectToAction("Announcements");
-            }
 
             var adminName = User.Identity?.Name ?? "Administrator";
 

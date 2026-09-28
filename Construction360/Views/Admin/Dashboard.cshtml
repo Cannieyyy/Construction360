@@ -6,9 +6,8 @@
     Layout = "_AppLayout";
 }
 
-<!-- SYSTEM OVERVIEW -->
+<!-- STAT CARDS -->
 <div class="stat-grid">
-
     <div class="stat-card">
         <div>
             <div class="stat-label">Total Accounts</div>
@@ -52,13 +51,12 @@
             <i class="fa-solid fa-user-slash"></i>
         </div>
     </div>
-
 </div>
 
-
-<!-- BUILDING OCCUPANCY -->
+<!-- BUILDING OCCUPANCY + SYSTEM STATUS -->
 <div class="charts-row">
 
+    <!-- BUILDING OCCUPANCY -->
     <div class="chart-card">
 
         <h3>Building Occupancy</h3>
@@ -107,14 +105,13 @@
                         <div style="
                             height:100%;
                             width:@(Model.BuildingOccupancy > 0
-                                                             ? Math.Min(100, (Model.EmployeeCountInside * 100.0) / Model.BuildingOccupancy)
-                                                             : 0)%;
+                                                                 ? Math.Min(100, (Model.EmployeeCountInside * 100.0) / Model.BuildingOccupancy)
+                                                                 : 0)%;
                             background:#1a2942;
                             border-radius:8px;
                         "></div>
                     </div>
                 </div>
-
 
                 <div>
                     <div style="
@@ -136,8 +133,8 @@
                         <div style="
                             height:100%;
                             width:@(Model.BuildingOccupancy > 0
-                                                             ? Math.Min(100, (Model.SupervisorCountInside * 100.0) / Model.BuildingOccupancy)
-                                                             : 0)%;
+                                                                 ? Math.Min(100, (Model.SupervisorCountInside * 100.0) / Model.BuildingOccupancy)
+                                                                 : 0)%;
                             background:#c0392b;
                             border-radius:8px;
                         "></div>
@@ -166,7 +163,6 @@
         </div>
 
     </div>
-
 
     <!-- SYSTEM STATUS -->
     <div class="chart-card">
@@ -198,30 +194,18 @@
             </div>
 
             <div>
-                <div style="
-                    font-size:14px;
-                    font-weight:700;
-                    color:#1a2942;
-                ">
+                <div style="font-size:14px;font-weight:700;color:#1a2942;">
                     @Model.SystemStatus
                 </div>
 
-                <div style="
-                    font-size:12px;
-                    color:#6b7280;
-                    margin-top:3px;
-                ">
+                <div style="font-size:12px;color:#6b7280;margin-top:3px;">
                     All core services are running
                 </div>
             </div>
 
         </div>
 
-        <div style="
-            margin-top:18px;
-            display:grid;
-            gap:10px;
-        ">
+        <div style="margin-top:18px;display:grid;gap:10px;">
 
             <div style="
                 display:flex;
@@ -263,8 +247,3 @@
     </div>
 
 </div>
-
-
-
-
-
