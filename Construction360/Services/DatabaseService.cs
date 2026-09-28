@@ -59,7 +59,7 @@ namespace Construction360.Services
                         EmployeeId NVARCHAR(20) UNIQUE,
                         Department NVARCHAR(50),
                         Position NVARCHAR(50),
-                        IsActive BIT DEFAULT 1,
+                        IsActive BIT DEFAULT 0,
                         CreatedDate DATETIME DEFAULT GETDATE(),
                         LastLoginDate DATETIME
                     )

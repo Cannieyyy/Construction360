@@ -88,10 +88,10 @@ namespace Construction360.Repositories
         public async Task<User> AuthenticateAsync(string email, string password)
         {
             var user = await GetUserByEmailAsync(email);
-            if (user == null || !user.IsActive)
+            if (user == null)
                 return null;
 
-            // Get salt and verify password
+            // Verify password WITHOUT checking IsActive (controller handles that)
             string sql = "SELECT Salt, PasswordHash FROM Users WHERE Email = @Email";
             var parameters = new[] { new SqlParameter("@Email", email) };
 
@@ -103,9 +103,8 @@ namespace Construction360.Repositories
 
                 if (PasswordHelper.VerifyPassword(password, salt, storedHash))
                 {
-                    // Update last login
                     await UpdateLastLoginAsync(user.Id);
-                    return user;
+                    return user;  // Return even if inactive; controller decides
                 }
             }
             return null;
@@ -113,41 +112,69 @@ namespace Construction360.Repositories
 
         public async Task<bool> CreateUserAsync(User user, string password)
         {
-            // Generate salt and hash password
-            var salt = PasswordHelper.GenerateSalt();
-            var hashedPassword = PasswordHelper.HashPassword(password, salt);
-
-            // Generate Employee ID if not provided
-            if (string.IsNullOrEmpty(user.EmployeeId))
+            try
             {
-                var count = await GetUserCountAsync();
-                var year = DateTime.Now.Year;
-                user.EmployeeId = $"EMP-{year}-{(count + 1):D3}";
+                Console.WriteLine("========== CreateUserAsync START ==========");
+                Console.WriteLine($"Email: {user.Email}, Username: {user.Username}, Role: {user.Role}");
+
+                var salt = PasswordHelper.GenerateSalt();
+                var hashedPassword = PasswordHelper.HashPassword(password, salt);
+
+                if (string.IsNullOrEmpty(user.EmployeeId))
+                {
+                    var count = await GetUserCountAsync();
+                    var year = DateTime.Now.Year;
+                    user.EmployeeId = $"EMP-{year}-{(count + 1):D3}";
+                }
+
+                // Set IsActive to false here (new users need approval)
+                user.IsActive = false;
+
+                string sql = @"
+            INSERT INTO Users (FullName, Username, Email, PasswordHash, Salt, Role, 
+                               EmployeeId, Department, Position, IsActive, CreatedDate)
+            VALUES (@FullName, @Username, @Email, @PasswordHash, @Salt, @Role, 
+                    @EmployeeId, @Department, @Position, @IsActive, @CreatedDate)";
+
+                var parameters = new[]
+                {
+            new SqlParameter("@FullName", user.FullName),
+            new SqlParameter("@Username", user.Username),
+            new SqlParameter("@Email", user.Email),
+            new SqlParameter("@PasswordHash", hashedPassword),
+            new SqlParameter("@Salt", salt),
+            new SqlParameter("@Role", user.Role.ToString()),
+            new SqlParameter("@EmployeeId", user.EmployeeId),
+            new SqlParameter("@Department", user.Department ?? (object)DBNull.Value),
+            new SqlParameter("@Position", user.Position ?? (object)DBNull.Value),
+            new SqlParameter("@IsActive", user.IsActive),
+            new SqlParameter("@CreatedDate", DateTime.Now)
+        };
+
+                Console.WriteLine("Executing INSERT...");
+                var result = await Task.Run(() => _databaseService.ExecuteNonQuery(sql, parameters));
+                Console.WriteLine($"Rows affected: {result}");
+                Console.WriteLine("========== CreateUserAsync END ==========");
+
+                return result > 0;
             }
-
-            string sql = @"
-                INSERT INTO Users (FullName, Username, Email, PasswordHash, Salt, Role, 
-                                   EmployeeId, Department, Position, IsActive, CreatedDate)
-                VALUES (@FullName, @Username, @Email, @PasswordHash, @Salt, @Role, 
-                        @EmployeeId, @Department, @Position, @IsActive, @CreatedDate)";
-
-            var parameters = new[]
+            catch (SqlException sqlEx)
             {
-                new SqlParameter("@FullName", user.FullName),
-                new SqlParameter("@Username", user.Username),
-                new SqlParameter("@Email", user.Email),
-                new SqlParameter("@PasswordHash", hashedPassword),
-                new SqlParameter("@Salt", salt),
-                new SqlParameter("@Role", user.Role.ToString()),
-                new SqlParameter("@EmployeeId", user.EmployeeId),
-                new SqlParameter("@Department", user.Department ?? (object)DBNull.Value),
-                new SqlParameter("@Position", user.Position ?? (object)DBNull.Value),
-                new SqlParameter("@IsActive", user.IsActive),
-                new SqlParameter("@CreatedDate", DateTime.Now)
-            };
-
-            var result = await Task.Run(() => _databaseService.ExecuteNonQuery(sql, parameters));
-            return result > 0;
+                Console.WriteLine($"========== SQL ERROR ==========");
+                Console.WriteLine($"Message: {sqlEx.Message}");
+                Console.WriteLine($"Error Number: {sqlEx.Number}");
+                Console.WriteLine($"Procedure: {sqlEx.Procedure}");
+                Console.WriteLine("================================");
+                return false;
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"========== GENERAL ERROR ==========");
+                Console.WriteLine($"Message: {ex.Message}");
+                Console.WriteLine($"Stack: {ex.StackTrace}");
+                Console.WriteLine("====================================");
+                return false;
+            }
         }
 
         public async Task<bool> UpdateUserAsync(User user)

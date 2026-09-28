@@ -150,7 +150,14 @@ namespace Construction360.Controllers
             }
             catch (Exception ex)
             {
-                model.Error = "An error occurred during registration. Please try again.";
+                // Log the actual error for debugging
+                Console.WriteLine($"========== REGISTRATION ERROR ==========");
+                Console.WriteLine($"Message: {ex.Message}");
+                Console.WriteLine($"Inner: {ex.InnerException?.Message}");
+                Console.WriteLine($"Stack: {ex.StackTrace}");
+                Console.WriteLine("=========================================");
+
+                model.Error = $"Registration failed: {ex.Message}";
                 return View(model);
             }
         }
