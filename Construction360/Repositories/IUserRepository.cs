@@ -21,6 +21,7 @@ namespace Construction360.Repositories
         Task<bool> ApproveUserAsync(int userId);
         Task<bool> RejectUserAsync(int userId);
         Task<bool> DeactivateUserAsync(int userId);
+        Task<bool> ActivateUserAsync(int userId);
         Task<List<User>> GetPendingUsersAsync();
         Task<List<User>> GetActiveUsersAsync();
         Task<List<User>> GetUsersByStatusAsync(string status);

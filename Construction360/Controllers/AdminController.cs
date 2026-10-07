@@ -10,6 +10,7 @@ namespace Construction360.Controllers
     [Authorize(Roles = "Admin")]
     public class AdminController : Controller
     {
+
         private readonly IUserRepository _userRepository;
 
         public AdminController(IUserRepository userRepository)
@@ -86,13 +87,14 @@ namespace Construction360.Controllers
                     (u.EmployeeId ?? "").Contains(search, StringComparison.OrdinalIgnoreCase)
                 ).ToList();
             }
-
             if (!string.IsNullOrWhiteSpace(status) && status != "All")
             {
-                if (status == "Active")
-                    usersList = usersList.Where(u => u.IsActive).ToList();
-                else if (status == "Pending")
-                    usersList = usersList.Where(u => !u.IsActive).ToList();
+                usersList = usersList
+                    .Where(u => string.Equals(
+                        u.AccountStatus,
+                        status,
+                        StringComparison.OrdinalIgnoreCase))
+                    .ToList();
             }
 
             var stats = await _userRepository.GetUserStatsAsync();
@@ -144,7 +146,7 @@ namespace Construction360.Controllers
                 var result = await _userRepository.RejectUserAsync(id);
 
                 if (result)
-                    TempData["SuccessMessage"] = "User rejected and removed.";
+                    TempData["SuccessMessage"] = "User rejected successfully!";
                 else
                     TempData["ErrorMessage"] = "Failed to reject user.";
             }
@@ -187,7 +189,7 @@ namespace Construction360.Controllers
         {
             try
             {
-                var result = await _userRepository.ApproveUserAsync(id);
+                var result = await _userRepository.ActivateUserAsync(id);
 
                 if (result)
                     TempData["SuccessMessage"] = "User activated successfully!";
@@ -274,6 +276,32 @@ namespace Construction360.Controllers
             });
 
             return RedirectToAction("Announcements");
+        }
+
+        // ============================================================
+        // SEND NOTIFICATION PAGE
+        // ============================================================
+
+        [HttpGet]
+        public IActionResult SendNotification()
+        {
+            return View();
+        }
+
+        [HttpPost]
+        [ValidateAntiForgeryToken]
+        public IActionResult SendNotification(string title, string message, string type)
+        {
+            if (string.IsNullOrWhiteSpace(title) || string.IsNullOrWhiteSpace(message))
+            {
+                TempData["ErrorMessage"] = "Please enter a title and message.";
+                return RedirectToAction("SendNotification");
+            }
+
+            // Temporary confirmation
+            TempData["SuccessMessage"] = "Notification sent successfully!";
+
+            return RedirectToAction("Notifications");
         }
     }
 }

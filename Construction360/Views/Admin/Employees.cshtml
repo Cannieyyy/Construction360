@@ -96,9 +96,11 @@
                 <input type="hidden" name="search" value="@Model.Search" />
                 <select name="status" class="form-control" style="width:150px;"
                         onchange="document.getElementById('statusForm').submit()">
-                    <option value="All" selected="@(string.IsNullOrEmpty(Model.StatusFilter) || Model.StatusFilter == "All")">All Statuses</option>
-                    <option value="Pending" selected="@(Model.StatusFilter == "Pending")">Pending</option>
-                    <option value="Active" selected="@(Model.StatusFilter == "Active")">Active</option>
+                   <option value="All" selected="@(string.IsNullOrEmpty(Model.StatusFilter) || Model.StatusFilter == "All")">All Statuses</option>
+                   <option value="Pending" selected="@(Model.StatusFilter == "Pending")">Pending</option>
+                   <option value="Active" selected="@(Model.StatusFilter == "Active")">Active</option>
+                   <option value="Inactive" selected="@(Model.StatusFilter == "Inactive")">Inactive</option>
+                   <option value="Rejected" selected="@(Model.StatusFilter == "Rejected")">Rejected</option>
                 </select>
             </form>
         </div>
@@ -121,7 +123,7 @@
                 {
                     foreach (var user in Model.Users)
                     {
-                        <tr class="user-row" data-status="@(user.IsActive ? "Active" : "Pending")"
+                        <tr class="user-row" data-status="@user.AccountStatus"
                             style="border-bottom:1px solid #e5e7eb;">
                             <td style="padding:16px 20px;">
                                 <div style="display:flex;align-items:center;gap:10px;">
@@ -145,51 +147,119 @@
 
                             <td style="padding:16px 20px;font-size:13px;">@(user.Department ?? "—")</td>
 
-                            <td style="padding:16px 20px;">
-                                @if (user.IsActive)
-                                {
-                                    <span class="badge badge-success"><i class="fa-solid fa-circle-check"></i> Active</span>
-                                }
-                                else
-                                {
-                                    <span class="badge badge-warning"><i class="fa-solid fa-clock"></i> Pending</span>
-                                }
-                            </td>
+                           <td style="padding:16px 20px;">
+                                 @if (user.AccountStatus == "Active")
+                            {
+                                 <span class="badge badge-success">
+                                      <i class="fa-solid fa-circle-check"></i> Active
+                                 </span>
+                            }
+                             else if (user.AccountStatus == "Pending")
+                            {
+                                <span class="badge badge-warning">
+                                     <i class="fa-solid fa-clock"></i> Pending
+                               </span>
+                            }
+                                 else if (user.AccountStatus == "Inactive")
+                            {
+                                <span class="badge badge-danger">
+                                     <i class="fa-solid fa-user-slash"></i> Inactive
+                                </span>
+                            }
+                                else if (user.AccountStatus == "Rejected")
+                            {
+                                <span class="badge badge-danger">
+                                    <i class="fa-solid fa-xmark"></i> Rejected
+                                </span>
+                            }
+                        else
+                           {
+                                <span class="badge badge-muted">
+                                @user.AccountStatus
+                                </span>
+                           }
+                        </td>
 
-                            <td style="padding:16px 20px;text-align:right;">
-                                @if (!user.IsActive)
-                                {
-                                    <div style="display:flex;justify-content:flex-end;gap:8px;">
-                                        <form asp-controller="Admin" asp-action="ApproveUser" method="post" style="display:inline;">
-                                            @Html.AntiForgeryToken()
-                                            <input type="hidden" name="id" value="@user.Id" />
-                                            <button type="submit" class="btn btn-success btn-sm">
-                                                <i class="fa-solid fa-check"></i> Approve
-                                            </button>
-                                        </form>
+                           <td style="padding:16px 20px;text-align:right;">
 
-                                        <form asp-controller="Admin" asp-action="RejectUser" method="post" style="display:inline;"
-                                              onsubmit="return confirm('Are you sure you want to reject and delete this user?');">
-                                            @Html.AntiForgeryToken()
-                                            <input type="hidden" name="id" value="@user.Id" />
-                                            <button type="submit" class="btn btn-danger btn-sm">
-                                                <i class="fa-solid fa-xmark"></i> Reject
-                                            </button>
-                                        </form>
-                                    </div>
-                                }
-                                else
-                                {
-                                    <form asp-controller="Admin" asp-action="DeactivateUser" method="post" style="display:inline;"
-                                          onsubmit="return confirm('Deactivate this user?');">
-                                        @Html.AntiForgeryToken()
-                                        <input type="hidden" name="id" value="@user.Id" />
-                                        <button type="submit" class="btn btn-outline btn-sm">
-                                            <i class="fa-solid fa-user-slash"></i> Deactivate
-                                        </button>
-                                    </form>
-                                }
-                            </td>
+    @if (user.AccountStatus == "Pending")
+    {
+        <div style="display:flex;justify-content:flex-end;gap:8px;">
+
+            <!-- APPROVE -->
+            <form asp-controller="Admin"
+                  asp-action="ApproveUser"
+                  method="post"
+                  style="display:inline;">
+                @Html.AntiForgeryToken()
+
+                <input type="hidden" name="id" value="@user.Id" />
+
+                <button type="submit" class="btn btn-success btn-sm">
+                    <i class="fa-solid fa-check"></i> Approve
+                </button>
+            </form>
+
+            <!-- REJECT -->
+            <form asp-controller="Admin"
+                  asp-action="RejectUser"
+                  method="post"
+                  style="display:inline;"
+                  onsubmit="return confirm('Are you sure you want to reject this user?');">
+
+                @Html.AntiForgeryToken()
+
+                <input type="hidden" name="id" value="@user.Id" />
+
+                <button type="submit" class="btn btn-danger btn-sm">
+                    <i class="fa-solid fa-xmark"></i> Reject
+                </button>
+            </form>
+
+        </div>
+    }
+
+    else if (user.AccountStatus == "Active")
+    {
+        <!-- DEACTIVATE -->
+        <form asp-controller="Admin"
+              asp-action="DeactivateUser"
+              method="post"
+              style="display:inline;"
+              onsubmit="return confirm('Deactivate this user?');">
+
+            @Html.AntiForgeryToken()
+
+            <input type="hidden" name="id" value="@user.Id" />
+
+            <button type="submit" class="btn btn-outline btn-sm">
+                <i class="fa-solid fa-user-slash"></i> Deactivate
+            </button>
+
+        </form>
+    }
+
+    else if (user.AccountStatus == "Inactive" || user.AccountStatus == "Rejected")
+    {
+        <!-- ACTIVATE -->
+        <form asp-controller="Admin"
+              asp-action="ActivateUser"
+              method="post"
+              style="display:inline;"
+              onsubmit="return confirm('Activate this user?');">
+
+            @Html.AntiForgeryToken()
+
+            <input type="hidden" name="id" value="@user.Id" />
+
+            <button type="submit" class="btn btn-success btn-sm">
+                <i class="fa-solid fa-user-check"></i> Activate
+            </button>
+
+        </form>
+    }
+
+</td>
                         </tr>
                     }
                 }

@@ -22,7 +22,7 @@ namespace Construction360.Repositories
         {
             string sql = @"
                 SELECT User_ID, FullName, Username, Email, PasswordHash, Salt, 
-                       Role, EmployeeId, Department, Position, IsActive, CreatedDate, LastLoginDate
+                       Role, EmployeeId, Department, Position, IsActive, CreatedDate, LastLoginDate, AccountStatus
                 FROM Users 
                 WHERE User_ID = @UserId";
 
@@ -40,7 +40,7 @@ namespace Construction360.Repositories
         {
             string sql = @"
                 SELECT User_ID, FullName, Username, Email, PasswordHash, Salt, 
-                       Role, EmployeeId, Department, Position, IsActive, CreatedDate, LastLoginDate
+                       Role, EmployeeId, Department, Position, IsActive, CreatedDate, LastLoginDate, AccountStatus
                 FROM Users 
                 WHERE Email = @Email";
 
@@ -58,7 +58,7 @@ namespace Construction360.Repositories
         {
             string sql = @"
                 SELECT User_ID, FullName, Username, Email, PasswordHash, Salt, 
-                       Role, EmployeeId, Department, Position, IsActive, CreatedDate, LastLoginDate
+                       Role, EmployeeId, Department, Position, IsActive, CreatedDate, LastLoginDate, AccountStatus
                 FROM Users 
                 WHERE Username = @Username";
 
@@ -77,7 +77,7 @@ namespace Construction360.Repositories
             var users = new List<User>();
             string sql = @"
                 SELECT User_ID, FullName, Username, Email, PasswordHash, Salt, 
-                       Role, EmployeeId, Department, Position, IsActive, CreatedDate, LastLoginDate
+                       Role, EmployeeId, Department, Position, IsActive, CreatedDate, LastLoginDate, AccountStatus
                 FROM Users 
                 ORDER BY CreatedDate DESC";
 
@@ -106,14 +106,17 @@ namespace Construction360.Repositories
 
                 if (PasswordHelper.VerifyPassword(password, salt, storedHash))
                 {
+                    // Only active accounts are allowed to log in
+                    if (!user.IsActive || user.AccountStatus != "Active")
+                    {
+                        return null;
+                    }
+
                     // Update last login time
                     await UpdateLastLoginAsync(user.Id);
 
-                    // Record the login if user is active
-                    if (user.IsActive)
-                    {
-                        await RecordLoginAsync(user);
-                    }
+                    // Record the login
+                    await RecordLoginAsync(user);
 
                     return user;
                 }
@@ -141,11 +144,40 @@ namespace Construction360.Repositories
                 // Force IsActive to false for new users (admin must approve)
                 user.IsActive = false;
 
+                // New accounts must wait for administrator approval
+                user.AccountStatus = "Pending";
+
                 string sql = @"
-                    INSERT INTO Users (FullName, Username, Email, PasswordHash, Salt, Role, 
-                                       EmployeeId, Department, Position, IsActive, CreatedDate)
-                    VALUES (@FullName, @Username, @Email, @PasswordHash, @Salt, @Role, 
-                            @EmployeeId, @Department, @Position, @IsActive, @CreatedDate)";
+    INSERT INTO Users 
+    (
+        FullName, 
+        Username, 
+        Email, 
+        PasswordHash, 
+        Salt, 
+        Role, 
+        EmployeeId, 
+        Department, 
+        Position, 
+        IsActive, 
+        CreatedDate,
+        AccountStatus
+    )
+    VALUES 
+    (
+        @FullName, 
+        @Username, 
+        @Email, 
+        @PasswordHash, 
+        @Salt, 
+        @Role, 
+        @EmployeeId, 
+        @Department, 
+        @Position, 
+        @IsActive, 
+        @CreatedDate,
+        @AccountStatus
+    )";
 
                 var parameters = new[]
                 {
@@ -159,7 +191,8 @@ namespace Construction360.Repositories
                     new SqlParameter("@Department", (object)user.Department ?? DBNull.Value),
                     new SqlParameter("@Position", (object)user.Position ?? DBNull.Value),
                     new SqlParameter("@IsActive", user.IsActive),
-                    new SqlParameter("@CreatedDate", DateTime.Now)
+                    new SqlParameter("@CreatedDate", DateTime.Now),
+                    new SqlParameter("@AccountStatus", user.AccountStatus)
                 };
 
                 var result = await Task.Run(() => _databaseService.ExecuteNonQuery(sql, parameters));
@@ -168,12 +201,12 @@ namespace Construction360.Repositories
             }
             catch (SqlException sqlEx)
             {
-                Console.WriteLine($"❌ SQL ERROR: {sqlEx.Message} (Code: {sqlEx.Number})");
+                Console.WriteLine($" SQL ERROR: {sqlEx.Message} (Code: {sqlEx.Number})");
                 return false;
             }
             catch (Exception ex)
             {
-                Console.WriteLine($"❌ ERROR: {ex.Message}");
+                Console.WriteLine($" ERROR: {ex.Message}");
                 return false;
             }
         }
@@ -246,20 +279,31 @@ namespace Construction360.Repositories
         {
             try
             {
-                Console.WriteLine($"========== ApproveUserAsync ==========");
+                Console.WriteLine("========== ApproveUserAsync ==========");
                 Console.WriteLine($"User ID: {userId}");
 
-                string sql = "UPDATE Users SET IsActive = 1 WHERE User_ID = @UserId";
-                var parameters = new[] { new SqlParameter("@UserId", userId) };
+                string sql = @"
+            UPDATE Users
+            SET IsActive = 1,
+                AccountStatus = 'Active'
+            WHERE User_ID = @UserId
+              AND AccountStatus = 'Pending'";
 
-                var result = await Task.Run(() => _databaseService.ExecuteNonQuery(sql, parameters));
+                var parameters = new[]
+                {
+            new SqlParameter("@UserId", userId)
+        };
 
-                Console.WriteLine($"✅ Rows affected: {result}");
+                var result = await Task.Run(() =>
+                    _databaseService.ExecuteNonQuery(sql, parameters));
+
+                Console.WriteLine($"Rows affected: {result}");
+
                 return result > 0;
             }
             catch (Exception ex)
             {
-                Console.WriteLine($"❌ ApproveUserAsync error: {ex.Message}");
+                Console.WriteLine($"ApproveUserAsync error: {ex.Message}");
                 return false;
             }
         }
@@ -268,21 +312,31 @@ namespace Construction360.Repositories
         {
             try
             {
-                Console.WriteLine($"========== RejectUserAsync ==========");
+                Console.WriteLine("========== RejectUserAsync ==========");
                 Console.WriteLine($"User ID: {userId}");
 
-                // Delete the user completely (they can re-register if rejected by mistake)
-                string sql = "DELETE FROM Users WHERE User_ID = @UserId AND IsActive = 0";
-                var parameters = new[] { new SqlParameter("@UserId", userId) };
+                string sql = @"
+            UPDATE Users
+            SET IsActive = 0,
+                AccountStatus = 'Rejected'
+            WHERE User_ID = @UserId
+              AND AccountStatus = 'Pending'";
 
-                var result = await Task.Run(() => _databaseService.ExecuteNonQuery(sql, parameters));
+                var parameters = new[]
+                {
+            new SqlParameter("@UserId", userId)
+        };
 
-                Console.WriteLine($"✅ Rows affected: {result}");
+                var result = await Task.Run(() =>
+                    _databaseService.ExecuteNonQuery(sql, parameters));
+
+                Console.WriteLine($"Rows affected: {result}");
+
                 return result > 0;
             }
             catch (Exception ex)
             {
-                Console.WriteLine($"❌ RejectUserAsync error: {ex.Message}");
+                Console.WriteLine($"RejectUserAsync error: {ex.Message}");
                 return false;
             }
         }
@@ -299,7 +353,40 @@ namespace Construction360.Repositories
             }
             catch (Exception ex)
             {
-                Console.WriteLine($"❌ DeactivateUserAsync error: {ex.Message}");
+                Console.WriteLine($" DeactivateUserAsync error: {ex.Message}");
+                return false;
+            }
+        }
+
+        public async Task<bool> ActivateUserAsync(int userId)
+        {
+            try
+            {
+                Console.WriteLine("========== ActivateUserAsync ==========");
+                Console.WriteLine($"User ID: {userId}");
+
+                string sql = @"
+            UPDATE Users
+            SET IsActive = 1,
+                AccountStatus = 'Active'
+            WHERE User_ID = @UserId
+              AND AccountStatus IN ('Inactive', 'Rejected')";
+
+                var parameters = new[]
+                {
+            new SqlParameter("@UserId", userId)
+        };
+
+                var result = await Task.Run(() =>
+                    _databaseService.ExecuteNonQuery(sql, parameters));
+
+                Console.WriteLine($"Rows affected: {result}");
+
+                return result > 0;
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"ActivateUserAsync error: {ex.Message}");
                 return false;
             }
         }
@@ -321,26 +408,32 @@ namespace Construction360.Repositories
             try
             {
                 string sql = @"
-                    SELECT User_ID, FullName, Username, Email, PasswordHash, Salt, 
-                           Role, EmployeeId, Department, Position, IsActive, CreatedDate, LastLoginDate
-                    FROM Users";
+            SELECT 
+                User_ID,
+                FullName,
+                Username,
+                Email,
+                PasswordHash,
+                Salt,
+                Role,
+                EmployeeId,
+                Department,
+                Position,
+                IsActive,
+                CreatedDate,
+                LastLoginDate,
+                AccountStatus
+            FROM Users
+            WHERE AccountStatus = @Status
+            ORDER BY CreatedDate DESC";
 
-                switch (status?.ToLower())
+                var parameters = new[]
                 {
-                    case "pending":
-                        sql += " WHERE IsActive = 0";
-                        break;
-                    case "active":
-                        sql += " WHERE IsActive = 1";
-                        break;
-                    case "inactive":
-                        sql += " WHERE IsActive = 0";
-                        break;
-                }
+            new SqlParameter("@Status", status)
+        };
 
-                sql += " ORDER BY CreatedDate DESC";
+                using var reader = _databaseService.ExecuteReader(sql, parameters);
 
-                using var reader = _databaseService.ExecuteReader(sql);
                 while (await reader.ReadAsync())
                 {
                     users.Add(MapUser(reader));
@@ -348,7 +441,7 @@ namespace Construction360.Repositories
             }
             catch (Exception ex)
             {
-                Console.WriteLine($"❌ GetUsersByStatusAsync error: {ex.Message}");
+                Console.WriteLine($"GetUsersByStatusAsync error: {ex.Message}");
             }
 
             return users;
@@ -357,34 +450,39 @@ namespace Construction360.Repositories
         public async Task<Dictionary<string, int>> GetUserStatsAsync()
         {
             var stats = new Dictionary<string, int>
-            {
-                { "Total", 0 },
-                { "Active", 0 },
-                { "Pending", 0 },
-                { "Inactive", 0 }
-            };
+    {
+        { "Total", 0 },
+        { "Active", 0 },
+        { "Pending", 0 },
+        { "Inactive", 0 },
+        { "Rejected", 0 }
+    };
 
             try
             {
                 string sql = @"
-                    SELECT 
-                        COUNT(*) AS Total,
-                        SUM(CASE WHEN IsActive = 1 THEN 1 ELSE 0 END) AS Active,
-                        SUM(CASE WHEN IsActive = 0 THEN 1 ELSE 0 END) AS Pending
-                    FROM Users";
+            SELECT
+                COUNT(*) AS Total,
+                SUM(CASE WHEN AccountStatus = 'Active' THEN 1 ELSE 0 END) AS Active,
+                SUM(CASE WHEN AccountStatus = 'Pending' THEN 1 ELSE 0 END) AS Pending,
+                SUM(CASE WHEN AccountStatus = 'Inactive' THEN 1 ELSE 0 END) AS Inactive,
+                SUM(CASE WHEN AccountStatus = 'Rejected' THEN 1 ELSE 0 END) AS Rejected
+            FROM Users";
 
                 using var reader = _databaseService.ExecuteReader(sql);
+
                 if (await reader.ReadAsync())
                 {
                     stats["Total"] = Convert.ToInt32(reader["Total"]);
                     stats["Active"] = Convert.ToInt32(reader["Active"]);
                     stats["Pending"] = Convert.ToInt32(reader["Pending"]);
-                    stats["Inactive"] = 0;
+                    stats["Inactive"] = Convert.ToInt32(reader["Inactive"]);
+                    stats["Rejected"] = Convert.ToInt32(reader["Rejected"]);
                 }
             }
             catch (Exception ex)
             {
-                Console.WriteLine($"❌ GetUserStatsAsync error: {ex.Message}");
+                Console.WriteLine($"GetUserStatsAsync error: {ex.Message}");
             }
 
             return stats;
@@ -422,11 +520,11 @@ namespace Construction360.Repositories
                 };
 
                 await Task.Run(() => _databaseService.ExecuteNonQuery(sql, parameters));
-                Console.WriteLine($"✅ Login recorded for {user.Email}");
+                Console.WriteLine($" Login recorded for {user.Email}");
             }
             catch (Exception ex)
             {
-                Console.WriteLine($"❌ RecordLoginAsync error: {ex.Message}");
+                Console.WriteLine($" RecordLoginAsync error: {ex.Message}");
                 // Don't throw — login should succeed even if tracking fails
             }
         }
@@ -453,7 +551,7 @@ namespace Construction360.Repositories
             }
             catch (Exception ex)
             {
-                Console.WriteLine($"❌ GetRecentLoginsAsync error: {ex.Message}");
+                Console.WriteLine($" GetRecentLoginsAsync error: {ex.Message}");
             }
 
             return records;
@@ -487,7 +585,7 @@ namespace Construction360.Repositories
             }
             catch (Exception ex)
             {
-                Console.WriteLine($"❌ SearchLoginsAsync error: {ex.Message}");
+                Console.WriteLine($" SearchLoginsAsync error: {ex.Message}");
             }
 
             return records;
@@ -503,7 +601,7 @@ namespace Construction360.Repositories
             }
             catch (Exception ex)
             {
-                Console.WriteLine($"❌ GetTotalLoginsAsync error: {ex.Message}");
+                Console.WriteLine($" GetTotalLoginsAsync error: {ex.Message}");
                 return 0;
             }
         }
@@ -521,7 +619,7 @@ namespace Construction360.Repositories
             }
             catch (Exception ex)
             {
-                Console.WriteLine($"❌ GetTodayLoginsAsync error: {ex.Message}");
+                Console.WriteLine($" GetTodayLoginsAsync error: {ex.Message}");
                 return 0;
             }
         }
@@ -540,7 +638,7 @@ namespace Construction360.Repositories
             }
             catch (Exception ex)
             {
-                Console.WriteLine($"❌ GetRecentLoginsCountAsync error: {ex.Message}");
+                Console.WriteLine($" GetRecentLoginsCountAsync error: {ex.Message}");
                 return 0;
             }
         }
@@ -555,7 +653,7 @@ namespace Construction360.Repositories
             }
             catch (Exception ex)
             {
-                Console.WriteLine($"❌ GetUniqueLocationsCountAsync error: {ex.Message}");
+                Console.WriteLine($" GetUniqueLocationsCountAsync error: {ex.Message}");
                 return 0;
             }
         }
@@ -584,6 +682,7 @@ namespace Construction360.Repositories
                 Department = reader["Department"]?.ToString() ?? "",
                 Position = reader["Position"]?.ToString() ?? "",
                 IsActive = Convert.ToBoolean(reader["IsActive"]),
+                AccountStatus = reader["AccountStatus"]?.ToString() ?? "Pending",
                 CreatedDate = reader["CreatedDate"] != DBNull.Value
                     ? Convert.ToDateTime(reader["CreatedDate"])
                     : DateTime.MinValue,

@@ -1,0 +1,110 @@
+﻿@{
+    ViewData["Title"] = "Send Notification";
+    ViewData["PageTitle"] = "Send Notification";
+    Layout = "_AppLayout";
+}
+
+<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:24px;">
+    <div>
+        <h2 style="margin:0;color:#1a2942;font-size:22px;">
+            Send Notification
+        </h2>
+
+        <p style="margin:6px 0 0;color:#6b7280;font-size:13px;">
+            Send an announcement to all system users.
+        </p>
+    </div>
+
+    <a href="/Admin/Notifications" class="btn btn-outline btn-sm">
+        <i class="fa-solid fa-arrow-left"></i>
+        Back to Notifications
+    </a>
+</div>
+
+<div class="table-card" style="max-width:800px;">
+    <div style="padding:24px;">
+
+        <div style="margin-bottom:22px;">
+            <h3 style="margin:0;color:#1a2942;">
+                Create Notification
+            </h3>
+
+            <p style="margin:6px 0 0;color:#6b7280;font-size:13px;">
+                The notification will be sent to all registered users.
+            </p>
+        </div>
+
+        <form asp-controller="Admin"
+              asp-action="SendNotification"
+              method="post">
+
+            @Html.AntiForgeryToken()
+
+            <div style="margin-bottom:18px;">
+                <label for="title"
+                       style="display:block;font-size:13px;font-weight:600;color:#374151;margin-bottom:7px;">
+                    Notification Title
+                </label>
+
+                <input type="text"
+                       id="title"
+                       name="title"
+                       class="form-control"
+                       placeholder="Enter notification title"
+                       required
+                       maxlength="100" />
+            </div>
+
+            <div style="margin-bottom:18px;">
+                <label for="type"
+                       style="display:block;font-size:13px;font-weight:600;color:#374151;margin-bottom:7px;">
+                    Notification Type
+                </label>
+
+                <select id="type"
+                        name="type"
+                        class="form-control"
+                        required>
+
+                    <option value="Info">Info</option>
+                    <option value="Success">Success</option>
+                    <option value="Warning">Warning</option>
+                    <option value="Error">Error</option>
+
+                </select>
+            </div>
+
+            <div style="margin-bottom:24px;">
+                <label for="message"
+                       style="display:block;font-size:13px;font-weight:600;color:#374151;margin-bottom:7px;">
+                    Message
+                </label>
+
+                <textarea id="message"
+                          name="message"
+                          class="form-control"
+                          rows="6"
+                          placeholder="Enter your notification message..."
+                          required
+                          maxlength="1000"></textarea>
+            </div>
+
+            <div style="display:flex;justify-content:flex-end;gap:10px;">
+
+                <a href="/Admin/Notifications"
+                   class="btn btn-outline">
+                    Cancel
+                </a>
+
+                <button type="submit"
+                        class="btn btn-primary">
+                    <i class="fa-solid fa-paper-plane"></i>
+                    Send Notification
+                </button>
+
+            </div>
+
+        </form>
+
+    </div>
+</div>

@@ -61,13 +61,74 @@ namespace Construction360.Services
                         Position NVARCHAR(50),
                         IsActive BIT DEFAULT 0,
                         CreatedDate DATETIME DEFAULT GETDATE(),
-                        LastLoginDate DATETIME
+                        LastLoginDate DATETIME,
+                        AccountStatus NVARCHAR(20) DEFAULT 'Pending'
                     )
                 END";
 
             //Executing
             ExecuteNonQuery(connection, createUsersTable);
             Console.WriteLine("Users table has been created");
+
+            // ============================================================
+            // ADD ACCOUNT STATUS COLUMN IF IT DOES NOT EXIST
+            // ============================================================
+
+            string checkAccountStatusColumn = @"
+    IF NOT EXISTS (
+        SELECT *
+        FROM sys.columns
+        WHERE object_id = OBJECT_ID('Users')
+        AND name = 'AccountStatus'
+    )
+    BEGIN
+        ALTER TABLE Users
+        ADD AccountStatus NVARCHAR(20) NULL;
+    END";
+
+            ExecuteNonQuery(connection, checkAccountStatusColumn);
+
+            Console.WriteLine("AccountStatus column has been checked/added.");
+
+            // ============================================================
+            // SET ACCOUNT STATUS FOR EXISTING USERS
+            // ============================================================
+
+            string updateAccountStatus = @"
+    UPDATE Users
+    SET AccountStatus =
+        CASE
+            WHEN IsActive = 1 THEN 'Active'
+            WHEN AccountStatus IS NULL THEN 'Pending'
+            ELSE AccountStatus
+        END
+    WHERE AccountStatus IS NULL";
+
+            ExecuteNonQuery(connection, updateAccountStatus);
+
+            Console.WriteLine("Existing user account statuses have been updated.");
+
+
+            // ============================================================
+            // ADD DEFAULT VALUE FOR NEW USERS
+            // ============================================================
+
+            string addAccountStatusDefault = @"
+    IF NOT EXISTS (
+        SELECT *
+        FROM sys.default_constraints
+        WHERE parent_object_id = OBJECT_ID('Users')
+        AND name = 'DF_Users_AccountStatus'
+    )
+    BEGIN
+        ALTER TABLE Users
+        ADD CONSTRAINT DF_Users_AccountStatus
+        DEFAULT 'Pending' FOR AccountStatus;
+    END";
+
+            ExecuteNonQuery(connection, addAccountStatusDefault);
+
+            Console.WriteLine("AccountStatus default value has been checked.");
 
             // Employees table
             string createEmployeesTable = @"
@@ -191,9 +252,34 @@ namespace Construction360.Services
                 var hashedPassword = PasswordHelper.HashPassword("admin123", salt);
 
                 var sql = @"
-                    INSERT INTO Users (FullName, Username, Email, PasswordHash, Salt, Role, EmployeeId, Department, Position, IsActive)
-                    VALUES (@FullName, @Username, @Email, @PasswordHash, @Salt, @Role, @EmployeeId, @Department, @Position, 1)";
-
+                         INSERT INTO Users 
+    (
+                         FullName, 
+                         Username, 
+                         Email, 
+                         PasswordHash, 
+                         Salt, 
+                         Role, 
+                         EmployeeId, 
+                         Department, 
+                         Position, 
+                         IsActive,
+                         AccountStatus
+    )
+                 VALUES 
+    (
+                        @FullName, 
+                        @Username, 
+                        @Email, 
+                        @PasswordHash, 
+                        @Salt, 
+                        @Role, 
+                        @EmployeeId, 
+                        @Department, 
+                        @Position, 
+                         1,
+                        'Active'
+    )";
                 using var connection = new SqlConnection(_connectionString);
                 connection.Open();
 
@@ -214,8 +300,34 @@ namespace Construction360.Services
                 var hashedPassword2 = PasswordHelper.HashPassword("super123", salt2);
 
                 var sql2 = @"
-                    INSERT INTO Users (FullName, Username, Email, PasswordHash, Salt, Role, EmployeeId, Department, Position, IsActive)
-                    VALUES (@FullName, @Username, @Email, @PasswordHash, @Salt, @Role, @EmployeeId, @Department, @Position, 1)";
+    INSERT INTO Users 
+    (
+        FullName, 
+        Username, 
+        Email, 
+        PasswordHash, 
+        Salt, 
+        Role, 
+        EmployeeId, 
+        Department, 
+        Position, 
+        IsActive,
+        AccountStatus
+    )
+    VALUES 
+    (
+        @FullName, 
+        @Username, 
+        @Email, 
+        @PasswordHash, 
+        @Salt, 
+        @Role, 
+        @EmployeeId, 
+        @Department, 
+        @Position, 
+        1,
+        'Active'
+    )";
 
                 using var command2 = new SqlCommand(sql2, connection);
                 command2.Parameters.AddWithValue("@FullName", "Mulweli Mbedzi");
