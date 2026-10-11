@@ -4,6 +4,7 @@ using Construction360.Repositories;
 using Construction360.ViewModels;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using Construction360.Services;
 
 namespace Construction360.Controllers
 {
@@ -12,10 +13,14 @@ namespace Construction360.Controllers
     {
 
         private readonly IUserRepository _userRepository;
+        private readonly DatabaseService _databaseService;
 
-        public AdminController(IUserRepository userRepository)
+        public AdminController(
+            IUserRepository userRepository,
+            DatabaseService databaseService)
         {
             _userRepository = userRepository;
+            _databaseService = databaseService;
         }
 
         // ===== DASHBOARD =====
@@ -290,16 +295,73 @@ namespace Construction360.Controllers
 
         [HttpPost]
         [ValidateAntiForgeryToken]
-        public IActionResult SendNotification(string title, string message, string type)
+        public async Task<IActionResult> SendNotification(
+     string title,
+     string message,
+     string type)
         {
-            if (string.IsNullOrWhiteSpace(title) || string.IsNullOrWhiteSpace(message))
+            try
             {
-                TempData["ErrorMessage"] = "Please enter a title and message.";
-                return RedirectToAction("SendNotification");
-            }
+                if (string.IsNullOrWhiteSpace(title) ||
+                    string.IsNullOrWhiteSpace(message))
+                {
+                    TempData["ErrorMessage"] =
+                        "Please enter a notification title and message.";
 
-            // Temporary confirmation
-            TempData["SuccessMessage"] = "Notification sent successfully!";
+                    return RedirectToAction("SendNotification");
+                }
+
+                string sql = @"
+            INSERT INTO Notifications
+            (
+                User_ID,
+                Title,
+                Message,
+                Type,
+                DateSent,
+                IsRead
+            )
+            SELECT
+                User_ID,
+                @Title,
+                @Message,
+                @Type,
+                GETDATE(),
+                0
+            FROM Users
+            WHERE IsActive = 1
+              AND AccountStatus = 'Active';
+        ";
+
+                var parameters = new[]
+                {
+            new System.Data.SqlClient.SqlParameter("@Title", title.Trim()),
+            new System.Data.SqlClient.SqlParameter("@Message", message.Trim()),
+            new System.Data.SqlClient.SqlParameter("@Type", type ?? "Info")
+        };
+
+                var result = await Task.Run(() =>
+                    _databaseService.ExecuteNonQuery(sql, parameters));
+
+                if (result > 0)
+                {
+                    TempData["SuccessMessage"] =
+                        "Notification sent successfully to all active users.";
+                }
+                else
+                {
+                    TempData["ErrorMessage"] =
+                        "The notification could not be sent because there are no active users.";
+                }
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine(
+                    $"SendNotification error: {ex.Message}");
+
+                TempData["ErrorMessage"] =
+                    "An error occurred while sending the notification.";
+            }
 
             return RedirectToAction("Notifications");
         }
