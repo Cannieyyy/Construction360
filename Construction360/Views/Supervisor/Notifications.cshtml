@@ -4,49 +4,145 @@
     ViewData["Title"] = "Notifications";
     ViewData["PageTitle"] = "Notifications";
     Layout = "_AppLayout";
+    int unread = ViewBag.UnreadCount ?? 0;
+    string filter = ViewBag.Filter ?? "All";
 }
+
 <div class="page-header flex justify-between items-center">
-    <div><h1>Notifications</h1><p>@ViewBag.UnreadCount unread notifications</p></div>
-    <button class="btn btn-outline btn-sm"><i class="fa-solid fa-check-double"></i> Mark All Read</button>
-</div>
-<div class="filter-tabs">
-    @foreach (var tab in new[] { "All", "Unread", "Info", "Success", "Warning", "Error" })
+    <div>
+        <h1>Notifications</h1>
+        <p>@unread unread notification@(unread == 1 ? "" : "s")</p>
+    </div>
+
+    @if (unread > 0)
     {
-        <a href="#" class="filter-tab @(tab == "All" ? "active" : "")">@tab</a>
+        <form method="post" asp-action="MarkAllRead" asp-controller="Supervisor">
+            @Html.AntiForgeryToken()
+            <button type="submit" class="btn btn-outline btn-sm">
+                <i class="fa-solid fa-check-double"></i> Mark All Read
+            </button>
+        </form>
     }
 </div>
-@foreach (var n in Model)
+
+<!-- SUCCESS/ERROR MESSAGES -->
+@if (TempData["SuccessMessage"] != null)
 {
-    var cardClass = n.IsRead ? "" : n.Type == "Warning" ? "warning" : n.Type == "Success" ? "success" : "unread";
-    <div class="notif-card @cardClass">
-        <div style="font-size:22px;line-height:1;">
+    <div style="background:#d1fae5;color:#065f46;padding:12px 20px;border-radius:8px;border:1px solid #a7f3d0;margin-bottom:20px;display:flex;align-items:center;gap:10px;">
+        <i class="fa-solid fa-circle-check"></i>
+        @TempData["SuccessMessage"]
+    </div>
+}
 
-            @if (n.Type == "Info")
-            {
-                <i class="fa-solid fa-circle-info"></i>
-            }
-            else if (n.Type == "Warning")
-            {
-                <i class="fa-solid fa-triangle-exclamation"></i>
-            }
-            else if (n.Type == "Success")
-            {
-                <i class="fa-solid fa-circle-check"></i>
-            }
-            else
-            {
-                <i class="fa-solid fa-circle-xmark"></i>
-            }
+@if (TempData["ErrorMessage"] != null)
+{
+    <div style="background:#fee2e2;color:#991b1b;padding:12px 20px;border-radius:8px;border:1px solid #fecaca;margin-bottom:20px;display:flex;align-items:center;gap:10px;">
+        <i class="fa-solid fa-circle-exclamation"></i>
+        @TempData["ErrorMessage"]
+    </div>
+}
 
-        </div>
-        <div style="flex:1;">
-            <div style="display:flex;justify-content:space-between;margin-bottom:4px;">
-                <strong style="font-size:14px;">@n.Title</strong>
-                <span class="notif-date">@n.Date.ToString("M/d/yyyy")</span>
+<!-- FILTER TABS -->
+<div class="filter-tabs">
+    <a href="?filter=All" class="filter-tab @(filter == "All" ? "active" : "")">All</a>
+    <a href="?filter=Unread" class="filter-tab @(filter == "Unread" ? "active" : "")">Unread</a>
+    <a href="?filter=Info" class="filter-tab @(filter == "Info" ? "active" : "")">Info</a>
+    <a href="?filter=Success" class="filter-tab @(filter == "Success" ? "active" : "")">Success</a>
+    <a href="?filter=Warning" class="filter-tab @(filter == "Warning" ? "active" : "")">Warning</a>
+    <a href="?filter=Error" class="filter-tab @(filter == "Error" ? "active" : "")">Error</a>
+</div>
+
+<!-- NOTIFICATIONS LIST -->
+@if (Model != null && Model.Any())
+{
+    foreach (var n in Model)
+    {
+        var cardClass = n.IsRead
+            ? ""
+            : n.Type == "Warning"
+                ? "warning"
+                : n.Type == "Success"
+                    ? "success"
+                    : "unread";
+
+        <div class="notif-card @cardClass">
+            <div style="font-size:22px;line-height:1;">
+                @if (n.Type == "Info")
+                {
+                    <i class="fa-solid fa-circle-info"></i>
+                }
+                else if (n.Type == "Warning")
+                {
+                    <i class="fa-solid fa-triangle-exclamation"></i>
+                }
+                else if (n.Type == "Success")
+                {
+                    <i class="fa-solid fa-circle-check"></i>
+                }
+                else
+                {
+                    <i class="fa-solid fa-circle-xmark"></i>
+                }
             </div>
-            <p style="font-size:13px;color:#6b7280;">@n.Message</p>
-            <a href="#" style="font-size:13px;color:#2563eb;font-weight:600;margin-top:6px;display:inline-block;">View Details</a>
+
+            <div style="flex:1;">
+                <div style="display:flex;justify-content:space-between;margin-bottom:4px;">
+                    <strong style="font-size:14px;">
+                        @n.Title
+                        @if (!n.IsRead)
+                        {
+                            <span style="background:#2563eb;color:white;font-size:9px;padding:2px 6px;border-radius:8px;margin-left:6px;">NEW</span>
+                        }
+                    </strong>
+                    <span class="notif-date">@n.Date.ToString("dd MMM yyyy, HH:mm")</span>
+                </div>
+
+                <p style="font-size:13px;color:#6b7280;">@n.Message</p>
+
+                <div style="display:flex;gap:14px;margin-top:8px;">
+                    @if (!n.IsRead)
+                    {
+                        <form method="post" asp-action="MarkNotificationRead" asp-controller="Supervisor" style="display:inline;">
+                            @Html.AntiForgeryToken()
+                            <input type="hidden" name="id" value="@n.Id" />
+                            <button type="submit" style="background:none;border:none;padding:0;font-size:13px;color:#2563eb;font-weight:600;cursor:pointer;">
+                                <i class="fa-solid fa-eye"></i> Mark as Read
+                            </button>
+                        </form>
+                    }
+                    else
+                    {
+                        <span style="font-size:13px;color:#9ca3af;">
+                            <i class="fa-solid fa-check"></i> Read
+                        </span>
+                    }
+                </div>
+            </div>
+
+            <form method="post" asp-action="DeleteNotification" asp-controller="Supervisor"
+                  onsubmit="return confirm('Delete this notification?');">
+                @Html.AntiForgeryToken()
+                <input type="hidden" name="id" value="@n.Id" />
+                <button type="submit"
+                        style="background:none;border:none;cursor:pointer;color:#9ca3af;font-size:16px;"
+                        title="Delete notification">
+                    <i class="fa-solid fa-trash"></i>
+                </button>
+            </form>
         </div>
-        <button style="background:none;border:none;cursor:pointer;color:#9ca3af;"><i class="fa-solid fa-trash"></i></button>
+    }
+}
+else
+{
+    <div class="notif-card" style="justify-content:center;text-align:center;padding:60px 20px;">
+        <div style="width:100%;">
+            <i class="fa-solid fa-bell-slash" style="font-size:42px;color:#d1d5db;margin-bottom:14px;"></i>
+            <div style="font-size:16px;font-weight:600;color:#1a2942;">
+                No notifications found
+            </div>
+            <p style="font-size:13px;color:#6b7280;margin-top:6px;">
+                @(filter == "All" ? "You don't have any notifications yet." : $"No notifications match the \"{filter}\" filter.")
+            </p>
+        </div>
     </div>
 }

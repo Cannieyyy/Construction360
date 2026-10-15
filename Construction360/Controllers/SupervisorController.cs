@@ -11,10 +11,14 @@ namespace Construction360.Controllers
     public class SupervisorController : Controller
     {
         private readonly ISupervisorRepository _supervisorRepository;
+        private readonly INotificationRepository _notificationRepository;
 
-        public SupervisorController(ISupervisorRepository SuperRepo)
+        public SupervisorController(
+            ISupervisorRepository supervisorRepository,
+            INotificationRepository notificationRepository)
         {
-            _supervisorRepository = SuperRepo;
+            _supervisorRepository = supervisorRepository;
+            _notificationRepository = notificationRepository;
         }
 
         public async Task<IActionResult> Dashboard()
@@ -215,10 +219,95 @@ namespace Construction360.Controllers
             return RedirectToAction("LeaveApproval");
         }
 
-        public async Task<IActionResult> Notifications()
+        // ===== NOTIFICATIONS =====
+        public async Task<IActionResult> Notifications(string? filter)
         {
-            ViewBag.UnreadCount = 0;
-            return View(new List<Notification>());
+            var userIdClaim = User.FindFirst("UserId")?.Value;
+            if (string.IsNullOrEmpty(userIdClaim) || !int.TryParse(userIdClaim, out int userId))
+            {
+                return RedirectToAction("Login", "Account");
+            }
+
+            try
+            {
+                var notifications = await _notificationRepository
+                    .GetFilteredNotificationsAsync(userId, "Supervisor", filter);
+
+                var unreadCount = await _notificationRepository
+                    .GetUnreadCountAsync(userId, "Supervisor");
+
+                ViewBag.UnreadCount = unreadCount;
+                ViewBag.Filter = filter ?? "All";
+
+                return View(notifications);
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"❌ Notifications error: {ex.Message}");
+                ViewBag.UnreadCount = 0;
+                ViewBag.Filter = filter ?? "All";
+                return View(new List<Notification>());
+            }
+        }
+
+        [HttpPost]
+        [ValidateAntiForgeryToken]
+        public async Task<IActionResult> MarkNotificationRead(int id)
+        {
+            try
+            {
+                await _notificationRepository.MarkAsReadAsync(id);
+                TempData["SuccessMessage"] = "Notification marked as read.";
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"❌ MarkNotificationRead error: {ex.Message}");
+                TempData["ErrorMessage"] = "Failed to mark notification as read.";
+            }
+
+            return RedirectToAction("Notifications");
+        }
+
+        [HttpPost]
+        [ValidateAntiForgeryToken]
+        public async Task<IActionResult> MarkAllRead()
+        {
+            var userIdClaim = User.FindFirst("UserId")?.Value;
+            if (string.IsNullOrEmpty(userIdClaim) || !int.TryParse(userIdClaim, out int userId))
+            {
+                return RedirectToAction("Login", "Account");
+            }
+
+            try
+            {
+                await _notificationRepository.MarkAllAsReadAsync(userId, "Supervisor");
+                TempData["SuccessMessage"] = "All notifications marked as read.";
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"❌ MarkAllRead error: {ex.Message}");
+                TempData["ErrorMessage"] = "Failed to mark all as read.";
+            }
+
+            return RedirectToAction("Notifications");
+        }
+
+        [HttpPost]
+        [ValidateAntiForgeryToken]
+        public async Task<IActionResult> DeleteNotification(int id)
+        {
+            try
+            {
+                await _notificationRepository.DeleteAsync(id);
+                TempData["SuccessMessage"] = "Notification deleted.";
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"❌ DeleteNotification error: {ex.Message}");
+                TempData["ErrorMessage"] = "Failed to delete notification.";
+            }
+
+            return RedirectToAction("Notifications");
         }
 
         // ===== PRIVATE HELPER METHODS - ALL FROM DATABASE =====

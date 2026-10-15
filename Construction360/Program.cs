@@ -13,7 +13,7 @@ builder.Services.AddControllersWithViews();
 builder.Services.AddScoped<DatabaseService>();
 builder.Services.AddScoped<IUserRepository, UserRepository>();
 builder.Services.AddScoped<ISupervisorRepository, SupervisorRepository>();
-
+builder.Services.AddScoped<INotificationRepository, NotificationRepository>();
 // Authentication
 builder.Services.AddAuthentication("Cookies")
     .AddCookie("Cookies", options =>

@@ -1,10 +1,28 @@
-﻿@using System.Security.Claims
+﻿@using Construction360.Repositories
+@using Construction360.Services
+@using System.Security.Claims
 @{
     var role = User.FindFirst(ClaimTypes.Role)?.Value ?? "Employee";
     var fullName = User.Identity?.Name ?? "User";
     var initials = User.FindFirst("Initials")?.Value ?? "U";
     var avatarClass = role == "Admin" ? "admin" : role == "Supervisor" ? "supervisor" : "employee";
-    var unreadNotifs = 2;
+
+    // Get real unread count
+    var unreadNotifs = 0;
+    var userIdStr = User.FindFirst("UserId")?.Value;
+    if (int.TryParse(userIdStr, out int userId))
+    {
+        try
+        {
+            var dbService = Context.RequestServices.GetService<DatabaseService>();
+            var notifRepo = new NotificationRepository(dbService);
+            unreadNotifs = await notifRepo.GetUnreadCountAsync(userId, role);
+        }
+        catch
+        {
+            unreadNotifs = 0;
+        }
+    }
 
     var currentController = ViewContext.RouteData.Values["controller"]?.ToString() ?? "";
     var currentAction = ViewContext.RouteData.Values["action"]?.ToString() ?? "";
