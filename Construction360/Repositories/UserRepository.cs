@@ -138,7 +138,7 @@ namespace Construction360.Repositories
                 {
                     var count = await GetUserCountAsync();
                     var year = DateTime.Now.Year;
-                    user.EmployeeId = $"EMP-{year}-{(count + 1):D3}";
+                    user.EmployeeId = $"EMP-{year}-{(count + 6):D3}";// I had to change so that it doesnt give us errors.
                 }
 
                 // Force IsActive to false for new users (admin must approve)
