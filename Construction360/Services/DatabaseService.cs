@@ -113,20 +113,20 @@ namespace Construction360.Services
             // ADD DEFAULT VALUE FOR NEW USERS
             // ============================================================
 
-            string addAccountStatusDefault = @"
-    IF NOT EXISTS (
-        SELECT *
-        FROM sys.default_constraints
-        WHERE parent_object_id = OBJECT_ID('Users')
-        AND name = 'DF_Users_AccountStatus'
-    )
-    BEGIN
-        ALTER TABLE Users
-        ADD CONSTRAINT DF_Users_AccountStatus
-        DEFAULT 'Pending' FOR AccountStatus;
-    END";
+    //        string addAccountStatusDefault = @"
+    //IF NOT EXISTS (
+    //    SELECT *
+    //    FROM sys.default_constraints
+    //    WHERE parent_object_id = OBJECT_ID('Users')
+    //    AND name = 'DF_Users_AccountStatus'
+    //)
+    //BEGIN
+    //    ALTER TABLE Users
+    //    ADD CONSTRAINT DF_Users_AccountStatus
+    //    DEFAULT 'Pending' FOR AccountStatus;
+    //END";
 
-            ExecuteNonQuery(connection, addAccountStatusDefault);
+    //        ExecuteNonQuery(connection, addAccountStatusDefault);
 
             Console.WriteLine("AccountStatus default value has been checked.");
 
@@ -135,7 +135,7 @@ namespace Construction360.Services
                 IF NOT EXISTS (SELECT * FROM sysobjects WHERE name = 'Employees' AND xtype = 'U')
                 BEGIN
                     CREATE TABLE Employees (
-                        Employee_ID INT PRIMARY KEY IDENTITY(1,1),
+                        Employee_ID INT PRIMARY KEY,
                         First_Name NVARCHAR(50) NOT NULL,
                         Last_Name NVARCHAR(50) NOT NULL,
                         ID_Number NVARCHAR(20) UNIQUE NOT NULL,
