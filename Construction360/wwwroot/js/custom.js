@@ -23,12 +23,28 @@ document.querySelectorAll('.role-option').forEach(opt => {
     });
 });
 
-// Sidebar collapse
-const collapseBtn = document.querySelector('.collapse-btn');
-const sidebar = document.querySelector('.sidebar');
-if (collapseBtn && sidebar) {
-    collapseBtn.addEventListener('click', () => sidebar.classList.toggle('collapsed'));
-}
+// Sidebar collapse (single handler, remembers state across pages)
+document.addEventListener('DOMContentLoaded', function () {
+    var sidebar = document.getElementById('sidebar');
+    var collapseBtn = document.getElementById('collapseBtn');
+
+    if (!sidebar || !collapseBtn) return;
+
+    // Restore saved state
+    try {
+        if (localStorage.getItem('sidebarCollapsed') === 'true') {
+            sidebar.classList.add('collapsed');
+        }
+    } catch (e) { /* storage unavailable, ignore */ }
+
+    // Toggle + save
+    collapseBtn.addEventListener('click', function () {
+        sidebar.classList.toggle('collapsed');
+        try {
+            localStorage.setItem('sidebarCollapsed', sidebar.classList.contains('collapsed'));
+        } catch (e) { }
+    });
+});
 
 // Modal open/close
 window.openModal = id => document.getElementById(id)?.classList.add('open');

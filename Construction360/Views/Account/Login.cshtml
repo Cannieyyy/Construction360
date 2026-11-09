@@ -11,14 +11,8 @@
             <span style="font-weight:800;font-size:16px;color:#1a2942;">Construct360</span>
             <span style="font-size:12px;color:#6b7280;margin-left:4px;">by ROCLA</span>
         </div>
-        <div class="nav-links">
-            <a href="#">Features</a>
-            <a href="#">About</a>
-            <a href="#">Contact</a>
-        </div>
         <div class="nav-ctas">
             <a asp-controller="Account" asp-action="Login" class="btn btn-outline">Login</a>
-            <a asp-controller="Account" asp-action="Register" class="btn btn-primary">Get Started</a>
         </div>
     </nav>
 
@@ -85,7 +79,7 @@
             </form>
 
             <div class="auth-footer">
-                Don't have an account? <a asp-controller="Account" asp-action="Register" class="link">Create account</a>
+                @* Don't have an account? <a asp-controller="Account" asp-action="Register" class="link">Create account</a> *@
             </div>
 
             <div style="margin-top:24px;padding-top:20px;border-top:1px solid #e5e7eb;">
@@ -95,11 +89,6 @@
                         <strong style="color:#1a2942;">Admin</strong><br>
                         admin@rocla.com<br>
                         admin123
-                    </div>
-                    <div style="background:#f9fafb;padding:8px;border-radius:8px;border:1px solid #e5e7eb;">
-                        <strong style="color:#059669;">Supervisor</strong><br>
-                        supervisor@rocla.com<br>
-                        super123
                     </div>
                 </div>
             </div>
